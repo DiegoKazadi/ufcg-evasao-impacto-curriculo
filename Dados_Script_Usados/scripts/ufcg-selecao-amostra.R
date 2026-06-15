@@ -6,7 +6,7 @@ library(dplyr)
 
 # Diretório dos dados
 
-pasta_dados <- "C:/Users/Big Data/Documents/Master UFCG/Semestre 2026.1/dropout-ufcg-curriculum-change/Dados_Script_Usados/dados"
+pasta_dados <- "C:/Users/Big Data/Documents/Master UFCG/Semestre 2026.1/ufcg-evasao-impacto-curriculo/Dados_Script_Usados/dados"
 
 # Carregar dados
 
@@ -29,19 +29,18 @@ tipos_excluir <- c(
 
 # Seleção da amostra
 
-amostra_final <- alunos %>%
-  
-  filter(!(`Tipo de Evasao` %in% tipos_excluir)) %>%
-  
+amostra_teste <- alunos %>%
   filter(
     (Curriculo == 1999 &
-       `Periodo de Ingresso` >= "2011.1" &
-       `Periodo de Ingresso` <= "2015.2") |
+       `Periodo de Ingresso` >= 20111 &
+       `Periodo de Ingresso` <= 20152) |
       
       (Curriculo == 2017 &
-         `Periodo de Ingresso` >= "2018.1" &
-         `Periodo de Ingresso` <= "2022.2")
+         `Periodo de Ingresso` >= 20181 &
+         `Periodo de Ingresso` <= 20222)
   )
+
+table(amostra_teste$Curriculo)
 
 # Verificações
 
@@ -76,3 +75,23 @@ write_csv(
 )
 
 cat("\nArquivo salvo com sucesso!\n")
+
+unique(alunos$`Periodo de Ingresso`)
+sort(unique(alunos$`Periodo de Ingresso`))
+str(alunos$`Periodo de Ingresso`)
+table(alunos$Curriculo)
+
+###
+
+library(dplyr)
+
+alunos %>%
+  count(Curriculo, `Periodo de Ingresso`) %>%
+  arrange(Curriculo, `Periodo de Ingresso`)
+
+names(alunos)
+
+names(alunos)[3]
+names(alunos)[15]
+
+table(alunos[[15]])
