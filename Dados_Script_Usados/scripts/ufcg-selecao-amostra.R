@@ -107,3 +107,32 @@ alunos %>%
     `Periodo de Ingresso` <= 20222
   ) %>%
   count(`Periodo de Ingresso`)
+
+
+###
+
+library(readr)
+library(dplyr)
+
+pasta_dados <- "C:/Users/Big Data/Documents/Master UFCG/Semestre 2026.1/ufcg-evasao-impacto-curriculo/Dados_Script_Usados/dados"
+
+alunos <- read_csv2(
+  file.path(pasta_dados, "alunos-final.csv"),
+  show_col_types = FALSE
+)
+
+# Quantidade por currículo e período
+
+tabela_periodos <- alunos %>%
+  count(Curriculo, `Periodo de Ingresso`) %>%
+  arrange(Curriculo, `Periodo de Ingresso`)
+
+print(tabela_periodos, n = Inf)
+
+# Totais por currículo
+
+alunos %>%
+  count(Curriculo)
+
+names(alunos)
+glimpse(alunos)
