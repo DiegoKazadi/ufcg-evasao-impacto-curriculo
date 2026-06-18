@@ -95,3 +95,15 @@ names(alunos)[3]
 names(alunos)[15]
 
 table(alunos[[15]])
+
+# alguns testes na base
+
+library(dplyr)
+
+alunos %>%
+  filter(
+    Curriculo == 2017,
+    `Periodo de Ingresso` >= 20181,
+    `Periodo de Ingresso` <= 20222
+  ) %>%
+  count(`Periodo de Ingresso`)
