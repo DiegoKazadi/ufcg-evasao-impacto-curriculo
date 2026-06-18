@@ -1,0 +1,15 @@
+=====================================
+ANALISE DESCRITIVA DA AMOSTRA
+=====================================
+
+Total de estudantes: 1772
+Total de variaveis: 15
+
+Arquivos gerados:
+tabela_curriculo.csv
+tabela_sexo.csv
+tabela_estado_civil.csv
+tabela_cor.csv
+tabela_cota.csv
+tabela_forma_ingresso.csv
+tabela_idade_resumo.csv
