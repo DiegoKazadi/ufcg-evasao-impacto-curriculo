@@ -1,138 +1,69 @@
-# 03_selecao_amostra.R
-# Seleção da amostra final da dissertação
-
 library(readr)
 library(dplyr)
 
-# Diretório dos dados
-
 pasta_dados <- "C:/Users/Big Data/Documents/Master UFCG/Semestre 2026.1/ufcg-evasao-impacto-curriculo/Dados_Script_Usados/dados"
 
-# Carregar dados
+arquivo <- file.path(
+  pasta_dados,
+  "alunos-final.csv"
+)
 
-alunos <- read_csv2(
-  file.path(pasta_dados, "alunos-final.csv"),
+alunos <- read_csv(
+  arquivo,
   show_col_types = FALSE
 )
 
-# Ajustar nomes das colunas
+# remover espaços extras dos nomes
 
 names(alunos) <- trimws(names(alunos))
 
-# Exclusões
+# renomear última coluna (Ingressantes)
 
-tipos_excluir <- c(
-  "INGRESSANTE NAO FEZ 1ª MATRICULA",
-  "NAO COMPARECEU AO REMANEJAMENTO",
-  "NAO COMPARECEU CADASTRO"
-)
+names(alunos)[15] <- "Ingressantes"
 
-# Seleção da amostra
+# converter colunas numéricas
 
-amostra_teste <- alunos %>%
-  filter(
-    (Curriculo == 1999 &
-       `Periodo de Ingresso` >= 20111 &
-       `Periodo de Ingresso` <= 20152) |
-      
-      (Curriculo == 2017 &
-         `Periodo de Ingresso` >= 20181 &
-         `Periodo de Ingresso` <= 20222)
+alunos <- alunos %>%
+  mutate(
+    `Currículo Entrada` = as.numeric(`Currículo Entrada`),
+    `Período de Ingresso` = as.numeric(`Período de Ingresso`)
   )
 
-table(amostra_teste$Curriculo)
+# seleção da amostra da defesa
 
-# Verificações
-
-cat("\n=====================================\n")
-cat("TOTAL DA AMOSTRA\n")
-cat("=====================================\n")
-
-n_total <- nrow(amostra_final)
-
-cat("Total:", n_total, "\n")
-
-cat("\n=====================================\n")
-cat("POR CURRÍCULO\n")
-cat("=====================================\n")
-
-table(amostra_final$Curriculo)
-
-cat("\n=====================================\n")
-cat("PERÍODOS DE INGRESSO\n")
-cat("=====================================\n")
-
-table(amostra_final$`Periodo de Ingresso`)
-
-# Salvar amostra utilizada na dissertação
-
-write_csv(
-  amostra_final,
-  file.path(
-    pasta_dados,
-    "amostra_final_dissertacao.csv"
-  )
-)
-
-cat("\nArquivo salvo com sucesso!\n")
-
-unique(alunos$`Periodo de Ingresso`)
-sort(unique(alunos$`Periodo de Ingresso`))
-str(alunos$`Periodo de Ingresso`)
-table(alunos$Curriculo)
-
-###
-
-library(dplyr)
-
-alunos %>%
-  count(Curriculo, `Periodo de Ingresso`) %>%
-  arrange(Curriculo, `Periodo de Ingresso`)
-
-names(alunos)
-
-names(alunos)[3]
-names(alunos)[15]
-
-table(alunos[[15]])
-
-# alguns testes na base
-
-library(dplyr)
-
-alunos %>%
+amostra_final <- alunos %>%
   filter(
-    Curriculo == 2017,
-    `Periodo de Ingresso` >= 20181,
-    `Periodo de Ingresso` <= 20222
+    (`Currículo Entrada` == 1999 &
+       `Período de Ingresso` >= 2011.1 &
+       `Período de Ingresso` <= 2015.2)
+    |
+      (`Currículo Entrada` == 2017 &
+         `Período de Ingresso` >= 2018.1 &
+         `Período de Ingresso` <= 2022.2)
+  )
+
+# ingressantes por período
+
+tabela_periodos <- amostra_final %>%
+  group_by(
+    `Currículo Entrada`,
+    `Período de Ingresso`
   ) %>%
-  count(`Periodo de Ingresso`)
-
-
-###
-
-library(readr)
-library(dplyr)
-
-pasta_dados <- "C:/Users/Big Data/Documents/Master UFCG/Semestre 2026.1/ufcg-evasao-impacto-curriculo/Dados_Script_Usados/dados"
-
-alunos <- read_csv2(
-  file.path(pasta_dados, "alunos-final.csv"),
-  show_col_types = FALSE
-)
-
-# Quantidade por currículo e período
-
-tabela_periodos <- alunos %>%
-  count(Curriculo, `Periodo de Ingresso`) %>%
-  arrange(Curriculo, `Periodo de Ingresso`)
+  summarise(
+    Ingressantes = sum(Ingressantes),
+    .groups = "drop"
+  ) %>%
+  arrange(
+    `Currículo Entrada`,
+    `Período de Ingresso`
+  )
 
 print(tabela_periodos, n = Inf)
 
-# Totais por currículo
+# totais
 
-alunos %>%
-  count(Curriculo)
-
-names(alunos)
-glimpse(alunos)
+tabela_periodos %>%
+  group_by(`Currículo Entrada`) %>%
+  summarise(
+    Total = sum(Ingressantes)
+  )
