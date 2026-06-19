@@ -8,7 +8,6 @@
 
 # da dissertação após a defesa.
 
-#
 
 # Currículo 1999:
 
@@ -67,6 +66,8 @@ arquivo <- file.path(
   "alunos-final.csv"
 )
 
+# Mudanca na leitura 
+
 alunos <- read_csv(
   arquivo,
   show_col_types = FALSE
@@ -74,9 +75,26 @@ alunos <- read_csv(
 
 names(alunos) <- trimws(names(alunos))
 
-# Renomear última coluna (Ingressantes)
+# Renomear automaticamente a última coluna
 
-names(alunos)[15] <- "Ingressantes"
+names(alunos)[ncol(alunos)] <- "Ingressantes"
+
+# Verificação
+
+if(!"Ingressantes" %in% names(alunos)){
+  stop("Coluna Ingressantes não encontrada.")
+}
+
+cat("\n=====================================\n")
+cat("BASE CARREGADA\n")
+cat("=====================================\n")
+
+cat("Número de registros:", nrow(alunos), "\n")
+cat("Número de colunas:", ncol(alunos), "\n")
+
+print(names(alunos))
+
+###//
 
 # =====================================================
 
