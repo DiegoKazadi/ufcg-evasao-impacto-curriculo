@@ -1,0 +1,48 @@
+Currículo de Ciência da Computação da UFCG (Resolução 08/2017 - Implantado em 2018.1)
+
+Principais Disciplinas Obrigatórias:
+1. Fundamentos de Matemática para Ciência da Computação I (4)
+2. Programação I (4)
+3. Laboratório de Programação I (4)
+4. Introdução à Computação (4)
+5. Fundamentos de Matemática para Ciência da Computação II (4)
+6. Cálculo Diferencial e Integral I (4)
+7. Programação II (4)
+8. Laboratório de Programação II (4)
+9. Álgebra Linear (4)
+10. Lógica para Computação (4)
+11. Cálculo Diferencial e Integral II (4)
+12. Estrutura de Dados (4)
+13. Laboratório de Estrutura de Dados (4)
+14. Teoria dos Grafos (4)
+15. Introdução à Probabilidade (4)
+16. Projeto de Software (4)
+17. Paradigmas de Linguagem de Programação (4)
+18. Banco de Dados I (4)
+19. Organização e Arquitetura de Computadores (4)
+20. Laboratório de Organização e Arquitetura de Computadores (4)
+21. Estatística Aplicada (4)
+22. Análise de Sistemas (4)
+23. Engenharia de Software (4)
+24. Redes de Computadores (4)
+25. Sistemas Operacionais (4)
+26. Teoria da Computação (4)
+27. Metodologia Científica (4)
+28. Programação Concorrente (4)
+29. Inteligência Artificial (4)
+30. Análise e Técnicas de Algoritmos (4)
+31. Compiladores (4)
+32. Projeto em Computação I (4)
+33. Projeto em Computação II (4)
+
+Estrutura de Carga Horária:
+- Obrigatório: 1980h (132 créditos)
+- Optativo Geral: 240h (16 créditos)
+- Optativo Específico: 600h (40 créditos)
+- TCC: 120h (8 créditos)
+- Atividades Complementares Flexíveis: 330h (22 créditos)
+Total: 3270h (218 créditos)
+
+Duração: 9 semestres (mínimo) a 14 semestres (máximo).
+Implantação: A partir de 2018.1.
+Resolução: CSE/UFCG nº 08/2017.

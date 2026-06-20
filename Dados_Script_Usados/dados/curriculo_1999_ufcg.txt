@@ -1,0 +1,71 @@
+Currículo Antigo de Ciência da Computação da UFCG (Vigente até 2017.2)
+
+1º Semestre:
+- Cálculo Diferencial e Integral I (4)
+- Álgebra Vetorial e Geometria Analítica (4)
+- Leitura e Produção de Textos (4)
+- Programação I (4)
+- Introdução à Computação (4)
+- Laboratório de Programação I (4)
+
+2º Semestre:
+- Cálculo Diferencial e Integral II (4)
+- Matemática Discreta (4)
+- Metodologia Científica (4)
+- Programação II (4)
+- Teoria dos Grafos (2)
+- Fundamentos de Física Clássica (4)
+- Laboratório de Programação II (4)
+
+3º Semestre:
+- Álgebra Linear (4)
+- Probabilidade e Estatística (4)
+- Teoria da Computação (4)
+- Estruturas de Dados e Algoritmos (4)
+- Fundamentos de Física Moderna (4)
+- Gerência da Informação (4)
+- Laboratório de Estruturas de Dados e Algoritmos (4)
+
+4º Semestre:
+- Métodos Estatísticos (4)
+- Paradigmas de Linguagens de Programação (2)
+- Lógica Matemática (4)
+- Organização e Arquitetura de Computadores I (4)
+- Engenharia de Software I (4)
+- Sistemas de Informação I (4)
+- Laboratório de Organização e Arquitetura de Computadores (4)
+
+5º Semestre:
+- Informática e Sociedade (2)
+- Análise e Técnicas de Algoritmos (4)
+- Compiladores (4)
+- Redes de Computadores (4)
+- Bancos de Dados I (4)
+- Sistemas de Informação II (4)
+- Laboratório de Engenharia de Software (2)
+
+6º Semestre:
+- Direito e Cidadania (4)
+- Sistemas Operacionais (4)
+- Interconexão de Redes de Computadores (2)
+- Banco de Dados II (4)
+- Inteligência Artificial I (4)
+- Laboratório de Interconexão de Redes de Computadores (2)
+- Optativa 1 (4)
+- Optativa 2 (4)
+
+7º Semestre:
+- Métodos e Software Numéricos (4)
+- Avaliação de Desempenho de Sistemas Discretos (4)
+- Projeto em Computação I (4)
+- Optativas 3, 4, 5, 6 (4 cada)
+
+8º Semestre:
+- Projeto em Computação II (6)
+- Optativas 7, 8, 9, 10 (4 cada)
+- Optativa 11 (2)
+
+Total de Créditos Obrigatórios: 166
+Total de Créditos Optativos: 42
+Total Geral: 208 créditos
+Conclusão em 9 semestres letivos (padrão).
