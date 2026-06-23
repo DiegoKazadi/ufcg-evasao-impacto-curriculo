@@ -93,11 +93,6 @@ explorar_variavel(
 
 explorar_variavel(
   dados,
-  "Estado Civil"
-)
-
-explorar_variavel(
-  dados,
   "Cor"
 )
 
@@ -113,7 +108,7 @@ explorar_variavel(
 
 explorar_variavel(
   dados,
-  "Tipo de Evasao"
+  "Tipo de Evasão"
 )
 
 explorar_variavel(
@@ -123,7 +118,7 @@ explorar_variavel(
 
 explorar_variavel(
   dados,
-  "Curriculo"
+  "Currículo"
 )
 
 explorar_variavel(
