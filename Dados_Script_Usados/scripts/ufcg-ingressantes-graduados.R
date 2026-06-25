@@ -1,92 +1,78 @@
 # =====================================================
-# 13_graduados_percentual.R
-# Distribuição dos estudantes graduados
+# Distribuição dos alunos graduados
+# Ingressantes + Percentual de graduados
 # =====================================================
 
-library(readr)
-library(dplyr)
-library(ggplot2)
-library(scales)
-
-# =====================================================
-# Diretórios
-# =====================================================
-
-projeto <- "C:/Users/Big Data/Documents/Master UFCG/Semestre 2026.1/ufcg-evasao-impacto-curriculo/Dados_Script_Usados"
-
-pasta_processados <- file.path(projeto,"dados_processados")
-pasta_resultados <- file.path(projeto,"resultados")
-pasta_tabelas <- file.path(pasta_resultados,"tabelas")
-pasta_graficos <- file.path(pasta_resultados,"graficos")
-
-# =====================================================
-# Carregar dados
-# =====================================================
-
-dados <- read_csv(
-  file.path(
-    pasta_processados,
-    "amostra_final_dissertacao.csv"
-  ),
-  show_col_types = FALSE
-)
-
-# =====================================================
 # Ingressantes por coorte
-# =====================================================
 
 ingressantes <- dados %>%
   count(
     `Currículo Entrada`,
     `Período de Ingresso`,
-    name="Ingressantes"
+    name = "Ingressantes"
   )
 
-# =====================================================
-# Graduados
-# =====================================================
+# Graduados por coorte
 
 graduados <- dados %>%
-  filter(`Tipo de Evasão`=="GRADUADO") %>%
+  filter(`Tipo de Evasão` == "GRADUADO") %>%
   count(
     `Currículo Entrada`,
     `Período de Ingresso`,
-    name="Graduados"
+    name = "Graduados"
   )
 
 # =====================================================
-# Tabela final
+# Junta as tabelas
 # =====================================================
 
-tabela <- ingressantes %>%
-  
+tabela_graduados <- ingressantes %>%
   left_join(
     graduados,
-    by=c(
+    by = c(
       "Currículo Entrada",
       "Período de Ingresso"
     )
   ) %>%
-  
   mutate(
     
-    Graduados=ifelse(
+    Graduados = ifelse(
       is.na(Graduados),
       0,
       Graduados
     ),
     
-    Percentual=round(
-      Graduados/Ingressantes*100,
-      1
-    )
+    Percentual =
+      round(
+        100 * Graduados / Ingressantes,
+        1
+      ),
+    
+    # Não exibir percentual das coortes
+    # que ainda não tiveram tempo suficiente
+    # para conclusão do curso
+    
+    Percentual_plot =
+      ifelse(
+        `Período de Ingresso` >= 2021.1,
+        NA,
+        Percentual
+      )
     
   )
 
-print(tabela)
+cat("\n=====================================\n")
+cat("INGRESSANTES E PERCENTUAL DE GRADUADOS\n")
+cat("=====================================\n")
+
+print(tabela_graduados)
+
+# =====================================================
+# Salvar tabela
+# =====================================================
 
 write_csv(
-  tabela,
+  tabela_graduados,
   file.path(
     pasta_tabelas,
     "tabela_graduados_percentual.csv"
@@ -94,120 +80,186 @@ write_csv(
 )
 
 # =====================================================
+# Escala do eixo secundário
+# =====================================================
+
+escala <- max(tabela_graduados$Ingressantes) / 100
+
+# =====================================================
 # Gráfico
 # =====================================================
 
-grafico <- ggplot(
-  
-  tabela,
-  
+grafico_graduados <- ggplot(
+  tabela_graduados,
   aes(
-    
-    factor(`Período de Ingresso`),
-    
-    Percentual,
-    
-    fill=factor(`Currículo Entrada`)
-    
+    x = factor(`Período de Ingresso`)
   )
+) +
   
-)+
+  # Barras
   
   geom_col(
-    position=position_dodge(0.8),
-    width=.7
-  )+
+    aes(
+      y = Ingressantes,
+      fill = factor(`Currículo Entrada`)
+    ),
+    width = .72
+  ) +
+  
+  # Valores das barras
   
   geom_text(
-    
     aes(
-      label=paste0(
-        Percentual,"%"
-      )
+      y = Ingressantes,
+      label = Ingressantes
     ),
-    
-    position=position_dodge(.8),
-    
-    vjust=-0.25,
-    
-    size=3
-    
-  )+
+    vjust = -0.35,
+    size = 3
+  ) +
+  
+  # Linha do percentual
+  
+  geom_line(
+    aes(
+      y = Percentual_plot * escala,
+      group = factor(`Currículo Entrada`)
+    ),
+    colour = "gray30",
+    linewidth = .6
+  ) +
+  
+  # Pontos
+  
+  geom_point(
+    aes(
+      y = Percentual_plot * escala
+    ),
+    colour = "gray30",
+    size = 2.3
+  ) +
+  
+  # Percentuais
+  
+  geom_text(
+    aes(
+      y = Percentual_plot * escala,
+      label =
+        ifelse(
+          is.na(Percentual_plot),
+          "",
+          paste0(
+            Percentual_plot,
+            "%"
+          )
+        )
+    ),
+    colour = "gray20",
+    size = 2.8,
+    vjust = -0.8
+  ) +
   
   scale_fill_manual(
-    
-    values=c(
-      "#1F77B4",
-      "#D62728"
+    values = c(
+      "1999" = "#1F77B4",
+      "2017" = "#D62728"
     ),
-    
-    labels=c(
+    labels = c(
       "Currículo 1999",
       "Currículo 2017"
     ),
+    name = "Currículo"
+  ) +
+  
+  scale_y_continuous(
     
-    name="Currículo"
+    name = "Número de ingressantes",
     
-  )+
+    breaks = seq(
+      0,
+      110,
+      20
+    ),
+    
+    sec.axis = sec_axis(
+      ~ . / escala,
+      name = "% de graduados"
+    )
+    
+  ) +
   
   labs(
     
-    title="Percentual de estudantes graduados por coorte de ingresso",
+    title = "Ingressantes e percentual de estudantes graduados por coorte",
     
-    x="Período de ingresso",
+    x = "Período de ingresso"
     
-    y="% de graduados"
-    
-  )+
+  ) +
   
-  theme_minimal()+
+  theme_minimal() +
   
   theme(
     
-    plot.title=element_text(
-      face="bold",
-      hjust=.5
+    plot.title = element_text(
+      face = "bold",
+      size = 16,
+      hjust = .5
     ),
     
-    legend.position="right",
+    legend.position = "right",
     
-    axis.text.x=element_text(
-      angle=45,
-      hjust=1
-    )
+    legend.title = element_text(
+      face = "bold"
+    ),
+    
+    axis.text.x = element_text(
+      angle = 45,
+      hjust = 1
+    ),
+    
+    panel.grid.minor = element_blank()
     
   )
 
-print(grafico)
+# =====================================================
+# Exibir gráfico
+# =====================================================
+
+print(grafico_graduados)
+
+# =====================================================
+# Salvar gráfico
+# =====================================================
 
 ggsave(
   
   file.path(
-    
     pasta_graficos,
-    
     "figura_graduados_percentual.png"
-    
   ),
   
-  grafico,
+  grafico_graduados,
   
-  width=10,
+  width = 11,
   
-  height=6,
+  height = 6,
   
-  dpi=300
+  dpi = 300
   
 )
 
-# =====================================================
-# Resumo
-# =====================================================
+cat("\n=====================================\n")
+cat("ARQUIVOS GERADOS\n")
+cat("=====================================\n")
 
-cat("\n====================================\n")
+cat(
+  "\nTabela:",
+  "\n- tabela_graduados_percentual.csv\n"
+)
 
-cat("GRADUADOS POR COORTE\n")
+cat(
+  "\nGráfico:",
+  "\n- figura_graduados_percentual.png\n"
+)
 
-cat("====================================\n")
+cat("\nAnálise concluída.\n")
 
-print(tabela)
