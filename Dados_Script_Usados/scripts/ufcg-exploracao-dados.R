@@ -247,3 +247,4 @@ cat(
 
 cat("\nAnálise exploratória concluída.\n")
 
+
