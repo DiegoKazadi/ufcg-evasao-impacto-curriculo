@@ -1,7 +1,13 @@
-Categoria,Estudantes,Percentual
-Branca,903,51
-Parda,722,40.7
-Preta,84,4.7
-Amarela,33,1.9
-Não declarada,26,1.5
-Indígena,4,0.2
+Curriculo,Categoria,Estudantes,Percentual
+1999,Amarela,19,2.2
+1999,Branca,448,52.5
+1999,Indígena,2,0.2
+1999,Não declarada,23,2.7
+1999,Parda,320,37.5
+1999,Preta,42,4.9
+2017,Amarela,14,1.5
+2017,Branca,455,49.6
+2017,Indígena,2,0.2
+2017,Não declarada,3,0.3
+2017,Parda,402,43.8
+2017,Preta,42,4.6
