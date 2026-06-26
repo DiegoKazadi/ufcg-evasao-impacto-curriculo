@@ -6,34 +6,31 @@
 tabela_evasao <- dados %>%
   
   filter(
-    
     Status == "INATIVO",
-    
     `Tipo de Evasão` != "GRADUADO"
-    
   ) %>%
   
-  count(`Tipo de Evasão`) %>%
+  count(
+    `Currículo Entrada`,
+    `Tipo de Evasão`
+  ) %>%
+  
+  group_by(`Currículo Entrada`) %>%
   
   mutate(
-    
-    Percentual =
-      round(
-        100 * n / sum(n),
-        1
-      )
-    
+    Percentual = round(
+      100 * n / sum(n),
+      1
+    )
   ) %>%
+  
+  ungroup() %>%
   
   rename(
-    
+    Curriculo = `Currículo Entrada`,
     Tipo_Evasao = `Tipo de Evasão`,
-    
     Estudantes = n
-    
-  ) %>%
-  
-  arrange(desc(Estudantes))
+  )
 
 cat("\n=====================================\n")
 cat("TIPOS DE EVASÃO\n")
@@ -44,17 +41,11 @@ print(tabela_evasao)
 # Salvar tabela
 
 write_csv(
-  
   tabela_evasao,
-  
   file.path(
-    
     pasta_tabelas,
-    
     "tabela_tipo_evasao.csv"
-    
   )
-  
 )
 
 # =====================================================
@@ -67,15 +58,14 @@ grafico_evasao <- ggplot(
   
   aes(
     
-    y = reorder(
-      
+    x = reorder(
       Tipo_Evasao,
-      
       Estudantes
-      
     ),
     
-    x = Estudantes
+    y = Estudantes,
+    
+    fill = factor(Curriculo)
     
   )
   
@@ -83,7 +73,9 @@ grafico_evasao <- ggplot(
   
   geom_col(
     
-    fill = "#D62728",
+    position = position_dodge(
+      width = 0.8
+    ),
     
     width = .7
     
@@ -92,14 +84,38 @@ grafico_evasao <- ggplot(
   geom_text(
     
     aes(
-      
       label = Estudantes
+    ),
+    
+    position = position_dodge(
+      width = 0.8
+    ),
+    
+    vjust = -.25,
+    
+    size = 3
+    
+  ) +
+  
+  scale_fill_manual(
+    
+    values = c(
+      
+      "1999" = "#1F77B4",
+      
+      "2017" = "#D62728"
       
     ),
     
-    hjust = -.2,
+    labels = c(
+      
+      "Currículo 1999",
+      
+      "Currículo 2017"
+      
+    ),
     
-    size = 3
+    name = "Currículo"
     
   ) +
   
@@ -107,17 +123,9 @@ grafico_evasao <- ggplot(
     
     title = "Distribuição dos estudantes inativos por tipo de evasão",
     
-    x = "Quantidade de estudantes",
+    x = "Tipo de evasão",
     
-    y = NULL
-    
-  ) +
-  
-  xlim(
-    
-    0,
-    
-    max(tabela_evasao$Estudantes) * 1.15
+    y = "Quantidade de estudantes"
     
   ) +
   
@@ -126,12 +134,22 @@ grafico_evasao <- ggplot(
   theme(
     
     plot.title = element_text(
-      
       face = "bold",
-      
       hjust = .5
-      
-    )
+    ),
+    
+    legend.position = "right",
+    
+    legend.title = element_text(
+      face = "bold"
+    ),
+    
+    axis.text.x = element_text(
+      angle = 35,
+      hjust = 1
+    ),
+    
+    panel.grid.minor = element_blank()
     
   )
 
@@ -140,16 +158,13 @@ print(grafico_evasao)
 ggsave(
   
   file.path(
-    
     pasta_graficos,
-    
     "figura_4_6_tipo_evasao.png"
-    
   ),
   
   grafico_evasao,
   
-  width = 10,
+  width = 11,
   
   height = 6,
   
@@ -157,4 +172,19 @@ ggsave(
   
 )
 
-cat("\nFigura salva.\n")
+cat("\n=====================================\n")
+cat("ARQUIVOS GERADOS\n")
+cat("=====================================\n")
+
+cat(
+  "\nTabela:",
+  "\n- tabela_tipo_evasao.csv\n"
+)
+
+cat(
+  "\nGráfico:",
+  "\n- figura_4_6_tipo_evasao.png\n"
+)
+
+cat("\nAnálise concluída.\n")
+
