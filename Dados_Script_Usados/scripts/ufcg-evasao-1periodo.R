@@ -28,7 +28,7 @@ dir.create(
 # Carregar dados
 # =====================================================
 
-dados <- read_csv(
+dados <- read_csv2(
   
   file.path(
     pasta_processados,
@@ -38,7 +38,28 @@ dados <- read_csv(
   show_col_types = FALSE
   
 )
+names(dados)
 
+# =====================================================
+# Padronizar nomes das colunas
+# =====================================================
+
+names(dados) <- c(
+  "Matricula",
+  "Periodo_Ingresso",
+  "Forma_Ingresso",
+  "Curriculo",
+  "Curriculo_Entrada",
+  "Estado_Civil",
+  "Sexo",
+  "Idade",
+  "Cor",
+  "Cota",
+  "Status",
+  "Tipo_Evasao",
+  "Periodo_Evasao",
+  "Ingressantes"
+)
 # =====================================================
 # Preparação da base
 # =====================================================
@@ -47,18 +68,19 @@ dados <- dados %>%
   
   mutate(
     
-    `Período de Evasão` =
-      ifelse(
-        `Período de Evasão`=="-",
-        NA,
-        `Período de Evasão`
-      ),
+    Periodo_Evasao = ifelse(
+      
+      Periodo_Evasao == "-",
+      
+      NA,
+      
+      Periodo_Evasao
+      
+    ),
     
-    `Período de Evasão` =
-      as.numeric(`Período de Evasão`)
+    Periodo_Evasao = as.numeric(Periodo_Evasao)
     
   )
-
 # =====================================================
 # Índice dos períodos
 # =====================================================
@@ -69,9 +91,9 @@ periodos <- sort(
     
     c(
       
-      dados$`Período de Ingresso`,
+      dados$`Periodo de Ingresso`,
       
-      dados$`Período de Evasão`
+      dados$`Periodo de Evasão`
       
     )
     
@@ -159,7 +181,7 @@ print(
   
   dados_p1 %>%
     
-    count(`Currículo Entrada`)
+    count(`Curriculo Entrada`)
   
 )
 
@@ -183,7 +205,7 @@ print(
       
       Status=="INATIVO",
       
-      `Tipo de Evasão`!="GRADUADO"
+      `Tipo de Evasao`!="GRADUADO"
       
     ) %>%
     
@@ -223,7 +245,7 @@ evadidos_p1 <- dados_p1 %>%
     
     Status=="INATIVO",
     
-    `Tipo de Evasão`!="GRADUADO"
+    `Tipo de Evasao`!="GRADUADO"
     
   ) %>%
   
@@ -235,9 +257,9 @@ evadidos_p1 <- dados_p1 %>%
   
   group_by(
     
-    `Currículo Entrada`,
+    `Curriculo Entrada`,
     
-    `Período de Ingresso`
+    `Periodo de Ingresso`
     
   ) %>%
   
@@ -261,9 +283,9 @@ tabela_p1 <- ingressantes %>%
     
     by=c(
       
-      "Currículo Entrada",
+      "Curriculo Entrada",
       
-      "Período de Ingresso"
+      "Periodo de Ingresso"
       
     )
     
@@ -328,3 +350,4 @@ write_csv(
 )
 
 cat("\nTabela salva com sucesso.\n")
+

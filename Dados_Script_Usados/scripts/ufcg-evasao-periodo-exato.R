@@ -1,6 +1,6 @@
 # =====================================================
 # evasao_periodo_exato.R
-# Evasão por período exato
+# Análise da evasão por período exato
 # =====================================================
 
 library(readr)
@@ -26,7 +26,7 @@ dir.create(
 # Carregar amostra
 # =====================================================
 
-dados <- read_csv(
+dados <- read_csv2(
   file.path(
     pasta_processados,
     "amostra_final_dissertacao.csv"
@@ -35,87 +35,121 @@ dados <- read_csv(
 )
 
 # =====================================================
-# Tratamento dos períodos
+# Verificar variáveis
+# =====================================================
+
+cat("\n=============================\n")
+cat("VARIÁVEIS DA BASE\n")
+cat("=============================\n")
+
+print(names(dados))
+
+# =====================================================
+# Tratamento do período de evasão
 # =====================================================
 
 dados <- dados %>%
   
   mutate(
     
-    `Período de Evasão` = ifelse(
-      `Período de Evasão` == "-",
+    `Periodo de Evasao` = ifelse(
+      
+      `Periodo de Evasao`=="-",
+      
       NA,
-      `Período de Evasão`
+      
+      `Periodo de Evasao`
+      
     ),
     
-    `Período de Evasão` =
-      as.numeric(`Período de Evasão`)
+    Periodo_Evasao_Num = as.numeric(
+      
+      ifelse(
+        
+        is.na(`Periodo de Evasao`),
+        
+        NA,
+        
+        gsub(
+          "\\.",
+          "",
+          `Periodo de Evasao`
+        )
+        
+      )
+      
+    )
     
   )
 
 # =====================================================
-# Criar índice sequencial dos semestres
+# Função para converter semestre em índice
 # =====================================================
 
-periodos <- sort(
+codigo_semestre <- function(x){
   
-  unique(
-    
-    c(
-      
-      dados$`Período de Ingresso`,
-      
-      dados$`Período de Evasão`
-      
-    )
-    
-  ),
+  ano <- x %/% 10
   
-  na.last = TRUE
+  semestre <- x %% 10
   
-)
-
-indice_periodos <- data.frame(
+  (ano - 2011) * 2 + semestre
   
-  Periodo = periodos,
-  
-  Indice = seq_along(periodos)
-  
-)
+}
 
 # =====================================================
-# Associar índice aos períodos
+# Criar período relativo
 # =====================================================
 
 dados <- dados %>%
   
-  left_join(
+  mutate(
     
-    indice_periodos,
+    indice_ingresso =
+      
+      codigo_semestre(
+        `Periodo de Ingresso`
+      ),
     
-    by = c(
-      "Período de Ingresso" = "Periodo"
-    )
+    indice_evasao =
+      
+      ifelse(
+        
+        is.na(Periodo_Evasao_Num),
+        
+        NA,
+        
+        codigo_semestre(
+          Periodo_Evasao_Num
+        )
+        
+      ),
     
-  ) %>%
-  
-  rename(
-    indice_ingresso = Indice
-  ) %>%
-  
-  left_join(
+    periodo_relativo =
+      
+      indice_evasao -
+      indice_ingresso
     
-    indice_periodos,
-    
-    by = c(
-      "Período de Evasão" = "Periodo"
-    )
-    
-  ) %>%
-  
-  rename(
-    indice_evasao = Indice
   )
+
+# =====================================================
+# Conferência
+# =====================================================
+
+cat("\n=============================\n")
+cat("PERÍODOS RELATIVOS\n")
+cat("=============================\n")
+
+print(
+  
+  dados %>%
+    
+    filter(
+      !is.na(periodo_relativo)
+    ) %>%
+    
+    count(periodo_relativo)
+  
+)
 
 # =====================================================
 # Ingressantes por coorte
@@ -125,9 +159,9 @@ ingressantes <- dados %>%
   
   group_by(
     
-    `Currículo Entrada`,
+    `Curriculo Entrada`,
     
-    `Período de Ingresso`
+    `Periodo de Ingresso`
     
   ) %>%
   
@@ -135,12 +169,12 @@ ingressantes <- dados %>%
     
     Ingressantes = n(),
     
-    .groups = "drop"
+    .groups="drop"
     
   )
 
 # =====================================================
-# Função para calcular evasão por período
+# Função de cálculo
 # =====================================================
 
 calcular_periodo <- function(periodo){
@@ -149,21 +183,15 @@ calcular_periodo <- function(periodo){
     
     filter(
       
-      !is.na(indice_evasao)
-      
-    ) %>%
-    
-    filter(
-      
-      indice_evasao - indice_ingresso == periodo
+      periodo_relativo == periodo
       
     ) %>%
     
     group_by(
       
-      `Currículo Entrada`,
+      `Curriculo Entrada`,
       
-      `Período de Ingresso`
+      `Periodo de Ingresso`
       
     ) %>%
     
@@ -171,7 +199,7 @@ calcular_periodo <- function(periodo){
       
       Evadidos = n(),
       
-      .groups = "drop"
+      .groups="drop"
       
     )
   
@@ -181,11 +209,11 @@ calcular_periodo <- function(periodo){
       
       evadidos,
       
-      by = c(
+      by=c(
         
-        "Currículo Entrada",
+        "Curriculo Entrada",
         
-        "Período de Ingresso"
+        "Periodo de Ingresso"
         
       )
       
@@ -205,7 +233,9 @@ calcular_periodo <- function(periodo){
       
       Taxa = round(
         
-        100 * Evadidos / Ingressantes,
+        100 *
+          Evadidos /
+          Ingressantes,
         
         2
         
@@ -215,9 +245,9 @@ calcular_periodo <- function(periodo){
     
     arrange(
       
-      `Currículo Entrada`,
+      `Curriculo Entrada`,
       
-      `Período de Ingresso`
+      `Periodo de Ingresso`
       
     )
   
@@ -226,120 +256,66 @@ calcular_periodo <- function(periodo){
 }
 
 # =====================================================
-# Período 1
+# Gerar tabelas
 # =====================================================
 
-tabela_p1 <- calcular_periodo(1)
-
-cat("\n=====================================\n")
-cat("EVASÃO - 1º PERÍODO\n")
-cat("=====================================\n")
-
-print(tabela_p1)
-
-write_csv(
+for(i in 1:4){
   
-  tabela_p1,
+  tabela <- calcular_periodo(i)
   
-  file.path(
+  cat("\n====================================\n")
+  
+  cat(
     
-    pasta_tabelas,
+    "EVASÃO -",
     
-    "evasao_periodo1.csv"
+    i,
+    
+    "º PERÍODO\n"
     
   )
   
-)
-
-# =====================================================
-# Período 2
-# =====================================================
-
-tabela_p2 <- calcular_periodo(2)
-
-cat("\n=====================================\n")
-cat("EVASÃO - 2º PERÍODO\n")
-cat("=====================================\n")
-
-print(tabela_p2)
-
-write_csv(
+  cat("====================================\n")
   
-  tabela_p2,
+  print(tabela)
   
-  file.path(
+  write_csv(
     
-    pasta_tabelas,
+    tabela,
     
-    "evasao_periodo2.csv"
-    
-  )
-  
-)
-
-# =====================================================
-# Período 3
-# =====================================================
-
-tabela_p3 <- calcular_periodo(3)
-
-cat("\n=====================================\n")
-cat("EVASÃO - 3º PERÍODO\n")
-cat("=====================================\n")
-
-print(tabela_p3)
-
-write_csv(
-  
-  tabela_p3,
-  
-  file.path(
-    
-    pasta_tabelas,
-    
-    "evasao_periodo3.csv"
+    file.path(
+      
+      pasta_tabelas,
+      
+      paste0(
+        
+        "evasao_periodo",
+        
+        i,
+        
+        ".csv"
+        
+      )
+      
+    )
     
   )
   
-)
-
-# =====================================================
-# Período 4
-# =====================================================
-
-tabela_p4 <- calcular_periodo(4)
-
-cat("\n=====================================\n")
-cat("EVASÃO - 4º PERÍODO\n")
-cat("=====================================\n")
-
-print(tabela_p4)
-
-write_csv(
-  
-  tabela_p4,
-  
-  file.path(
-    
-    pasta_tabelas,
-    
-    "evasao_periodo4.csv"
-    
-  )
-  
-)
+}
 
 # =====================================================
 # Resumo
 # =====================================================
 
-cat("\n=====================================\n")
+cat("\n====================================\n")
 cat("ARQUIVOS GERADOS\n")
-cat("=====================================\n")
+cat("====================================\n")
 
 cat(
+  
   "\n- evasao_periodo1.csv",
   "\n- evasao_periodo2.csv",
   "\n- evasao_periodo3.csv",
   "\n- evasao_periodo4.csv\n"
+  
 )
