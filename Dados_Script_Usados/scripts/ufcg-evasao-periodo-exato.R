@@ -372,3 +372,4 @@ dados %>%
     `Periodo de Ingresso`,
     desc(n)
   )
+
