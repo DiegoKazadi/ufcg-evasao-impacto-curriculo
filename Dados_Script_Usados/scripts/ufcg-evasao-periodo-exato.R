@@ -319,3 +319,56 @@ cat(
   "\n- evasao_periodo4.csv\n"
   
 )
+
+
+## Testes para visualizar algumas saídas 
+
+dados %>%
+  count(Status)
+
+dados %>%
+  filter(
+    periodo_relativo == 1
+  ) %>%
+  count(Status)
+
+#
+
+dados %>%
+  filter(
+    `Periodo de Ingresso` == 20111,
+    periodo_relativo == 1
+  ) %>%
+  select(
+    Matricula,
+    Status,
+    `Tipo de Evasao`,
+    `Periodo de Ingresso`,
+    `Periodo de Evasao`
+  ) %>%
+  arrange(`Tipo de Evasao`)
+
+#
+
+dados %>%
+  filter(
+    `Periodo de Ingresso` == 20111,
+    periodo_relativo == 1
+  ) %>%
+  count(`Tipo de Evasao`)
+
+#
+
+dados %>%
+  filter(
+    `Curriculo Entrada` == 1999,
+    periodo_relativo == 1
+  ) %>%
+  count(
+    `Periodo de Ingresso`,
+    `Tipo de Evasao`
+  ) %>%
+  arrange(
+    `Periodo de Ingresso`,
+    desc(n)
+  )
