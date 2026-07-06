@@ -174,9 +174,11 @@ ingressantes <- dados %>%
     
   )
 
+
 # =====================================================
 # Função de cálculo
 # =====================================================
+
 calcular_periodo <- function(periodo){
   
   # Conversão:
@@ -221,25 +223,26 @@ calcular_periodo <- function(periodo){
   return(tabela)
   
 }
-################################################################################
+
 # =====================================================
 # Gerar tabelas
 # =====================================================
+
+lista_tabelas <- list()
 
 for(i in 1:4){
   
   tabela <- calcular_periodo(i)
   
+  # Guarda a tabela para gerar os gráficos posteriormente
+  lista_tabelas[[paste0("Periodo_", i)]] <- tabela
+  
   cat("\n====================================\n")
   
   cat(
-    
     "EVASÃO -",
-    
     i,
-    
     "º PERÍODO\n"
-    
   )
   
   cat("====================================\n")
@@ -255,13 +258,9 @@ for(i in 1:4){
       pasta_tabelas,
       
       paste0(
-        
         "evasao_periodo",
-        
         i,
-        
         ".csv"
-        
       )
       
     )
@@ -270,11 +269,8 @@ for(i in 1:4){
   
 }
 
-
-
-
-
-###############################################################################
+cat("\nQuantidade de tabelas:", length(lista_tabelas), "\n")
+print(names(lista_tabelas))
 
 # =====================================================
 # Pasta dos gráficos
@@ -320,12 +316,16 @@ gerar_grafico <- function(tabela, periodo){
       Periodo = formatar_periodo(`Periodo de Ingresso`),
       
       Curriculo = factor(
+        
         `Curriculo Entrada`,
-        levels = c(1999,2017),
+        
+        levels = c(1999, 2017),
+        
         labels = c(
           "Currículo 1999",
           "Currículo 2017"
         )
+        
       )
       
     )
@@ -335,147 +335,177 @@ gerar_grafico <- function(tabela, periodo){
     tabela_plot,
     
     aes(
+      
       x = Periodo,
+      
       y = Taxa,
-      colour = Curriculo,
-      group = Curriculo
+      
+      fill = Curriculo
+      
     )
     
   ) +
     
-    geom_line(
-      linewidth = 1
-    ) +
-    
-    geom_point(
-      size = 3
+    geom_col(
+      
+      position = "dodge",
+      
+      width = 0.70,
+      
+      colour = "black",
+      
+      linewidth = 0.2
+      
     ) +
     
     geom_text(
       
       aes(
-        label = sprintf("%.2f%%",Taxa)
+        
+        label = sprintf("%.1f", Taxa)
+        
       ),
       
-      vjust = -0.7,
+      position = position_dodge(width = 0.70),
       
-      size = 3
+      vjust = -0.35,
+      
+      size = 3,
+      
+      show.legend = FALSE
       
     ) +
     
-    scale_colour_manual(
+    scale_fill_manual(
       
       values = c(
+        
         "Currículo 1999" = "#1F77B4",
+        
         "Currículo 2017" = "#D62728"
+        
       )
+      
+    ) +
+    
+    scale_y_continuous(
+      
+      expand = expansion(mult = c(0,0.10))
       
     ) +
     
     labs(
       
       title = paste0(
+        
         "Taxa de evasão no ",
+        
         periodo,
+        
         "º período"
+        
       ),
       
       x = "Período de ingresso",
       
       y = "Taxa de evasão (%)",
       
-      colour = "Currículo"
+      fill = "Currículo"
       
     ) +
-    
-    expand_limits(y = 0) +
     
     theme_classic(base_size = 13) +
     
     theme(
       
       plot.title = element_text(
+        
         face = "bold",
+        
         hjust = .5
+        
       ),
       
       legend.position = "top",
       
       axis.text.x = element_text(
+        
         angle = 45,
+        
         hjust = 1
+        
       )
       
     )
+  
+  arquivo <- file.path(
+    
+    pasta_graficos,
+    
+    paste0(
+      
+      "figura_5_",
+      
+      periodo,
+      
+      "_evasao.png"
+      
+    )
+    
+  )
   
   print(g)
   
   ggsave(
     
-    filename = file.path(
-      
-      pasta_graficos,
-      
-      paste0(
-        "figura_5_",
-        periodo,
-        "_evasao.png"
-      )
-      
-    ),
+    filename = arquivo,
     
     plot = g,
+    
+    device = "png",
     
     width = 11,
     
     height = 6,
     
-    dpi = 300
+    units = "in",
+    
+    dpi = 300,
+    
+    bg = "white"
     
   )
+  
+  cat("\n-------------------------------------\n")
+ 
+   cat("Gráfico do", periodo, "º período salvo em:\n")
+ 
+    print(arquivo)
+  
+  if(file.exists(arquivo)){
+    
+    cat("Status: OK - arquivo salvo com sucesso.\n")
+    
+  }else{
+    
+    cat("ERRO: o gráfico NÃO foi salvo.\n")
+    
+  }
   
 }
 
-
 # =====================================================
-# Gerar tabelas e gráficos
+# Gerar os quatro gráficos
 # =====================================================
 
-lista_tabelas <- list()
-
-for(i in 1:4){
-  
-  tabela <- calcular_periodo(i)
-  
-  lista_tabelas[[paste0("Periodo_",i)]] <- tabela
-  
-  cat("\n====================================\n")
-  cat("EVASÃO -",i,"º PERÍODO\n")
-  cat("====================================\n")
-  
-  print(tabela)
-  
-  write_csv2(
-    
-    tabela,
-    
-    file.path(
-      
-      pasta_tabelas,
-      
-      paste0(
-        "evasao_periodo",
-        i,
-        ".csv"
-      )
-      
-    )
-    
-  )
+for(i in seq_along(lista_tabelas)){
   
   gerar_grafico(
-    tabela,
-    i
+    
+    tabela = lista_tabelas[[i]],
+    
+    periodo = i
+    
   )
   
 }
@@ -485,25 +515,25 @@ for(i in 1:4){
 # =====================================================
 
 tabela_geral <- bind_rows(
-
+  
   lista_tabelas,
-
+  
   .id = "Periodo"
-
+  
 )
 
 write_csv2(
-
+  
   tabela_geral,
-
+  
   file.path(
-
+    
     pasta_tabelas,
-
+    
     "evasao_todos_periodos.csv"
-
+    
   )
-
+  
 )
 
 cat("\n=========================================\n")
@@ -517,8 +547,12 @@ cat("\nGráficos:\n")
 cat(pasta_graficos,"\n")
 
 
-tabela4 <- calcular_periodo(4)
 
-print(tabela4)
+cat("\n===============================\n")
+cat("Quantidade de tabelas:", length(lista_tabelas), "\n")
+cat("===============================\n")
 
-gerar_grafico(tabela4,4)
+print(names(lista_tabelas))
+
+str(lista_tabelas)
+
