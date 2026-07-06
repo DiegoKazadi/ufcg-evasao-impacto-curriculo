@@ -277,17 +277,8 @@ for(i in 1:4){
 ###############################################################################
 
 # =====================================================
-# GERAR GRÁFICOS DAS TABELAS DE EVASÃO
-# =====================================================
-
-library(ggplot2)
-library(readr)
-library(dplyr)
-library(purrr)
-
-#-------------------------------------------------------
 # Pasta dos gráficos
-#-------------------------------------------------------
+# =====================================================
 
 pasta_graficos <- file.path(
   pasta_resultados,
@@ -300,21 +291,9 @@ dir.create(
   showWarnings = FALSE
 )
 
-#-------------------------------------------------------
-# Arquivos
-#-------------------------------------------------------
-
-arquivos <- list.files(
-  pasta_tabelas,
-  pattern = "^evasao_periodo[1-4]\\.csv$",
-  full.names = TRUE
-)
-
-print(arquivos)
-
-#-------------------------------------------------------
+# =====================================================
 # Formatar período
-#-------------------------------------------------------
+# =====================================================
 
 formatar_periodo <- function(x){
   
@@ -328,159 +307,67 @@ formatar_periodo <- function(x){
   
 }
 
-#-------------------------------------------------------
-# Função dos gráficos
-#-------------------------------------------------------
+# =====================================================
+# Função para gerar gráfico
+# =====================================================
 
-plotar_evasao <- function(arquivo){
+gerar_grafico <- function(tabela, periodo){
   
-  cat("\n====================================\n")
-  cat("LENDO:", basename(arquivo), "\n")
-  cat("====================================\n")
-  
-  periodo <- gsub(
-    "evasao_periodo([0-9]+)\\.csv",
-    "\\1",
-    basename(arquivo)
-  )
-  
-  #---------------------------------------------------
-  # Ler corretamente
-  #---------------------------------------------------
-  
-  df <- read_csv2(
-    arquivo,
-    show_col_types = FALSE
-  )
-  
-  cat("\nNOMES DAS COLUNAS\n")
-  print(names(df))
-  
-  cat("\nPRIMEIRAS LINHAS\n")
-  print(head(df))
-  
-  #---------------------------------------------------
-  # Converter tipos
-  #---------------------------------------------------
-  
-  df <- df %>%
+  tabela_plot <- tabela %>%
     
     mutate(
       
-      `Curriculo Entrada` =
-        as.factor(`Curriculo Entrada`),
+      Periodo = formatar_periodo(`Periodo de Ingresso`),
       
-      `Periodo de Ingresso` =
-        as.numeric(`Periodo de Ingresso`),
-      
-      Ingressantes =
-        as.numeric(Ingressantes),
-      
-      Evadidos =
-        as.numeric(Evadidos),
-      
-      Taxa =
-        as.numeric(Taxa)
-      
-    )
-  
-  cat("\nRESUMO DA TAXA\n")
-  print(summary(df$Taxa))
-  
-  cat("\nVALORES DA TAXA\n")
-  print(df$Taxa)
-  
-  df <- df %>%
-    
-    mutate(
-      
-      Periodo =
-        formatar_periodo(`Periodo de Ingresso`),
-      
-      Curriculo =
-        factor(
-          
-          `Curriculo Entrada`,
-          
-          levels = c("1999","2017"),
-          
-          labels = c(
-            "Currículo 1999",
-            "Currículo 2017"
-          )
-          
+      Curriculo = factor(
+        `Curriculo Entrada`,
+        levels = c(1999,2017),
+        labels = c(
+          "Currículo 1999",
+          "Currículo 2017"
         )
+      )
       
     )
   
-  #---------------------------------------------------
-  # Gráfico
-  #---------------------------------------------------
-  
-  grafico <- ggplot(
+  g <- ggplot(
     
-    df,
+    tabela_plot,
     
     aes(
-      
       x = Periodo,
-      
       y = Taxa,
-      
-      fill = Curriculo
-      
+      colour = Curriculo,
+      group = Curriculo
     )
     
   ) +
     
-    geom_col(
-      
-      width = .75
-      
+    geom_line(
+      linewidth = 1
+    ) +
+    
+    geom_point(
+      size = 3
     ) +
     
     geom_text(
       
       aes(
-        
-        label = sprintf("%.2f%%", Taxa)
-        
+        label = sprintf("%.2f%%",Taxa)
       ),
       
-      vjust = -0.4,
+      vjust = -0.7,
       
-      size = 3.5
-      
-    ) +
-    
-    facet_wrap(
-      
-      ~Curriculo,
-      
-      scales = "free_x"
+      size = 3
       
     ) +
     
-    scale_fill_manual(
+    scale_colour_manual(
       
       values = c(
-        
-        "Currículo 1999"="#1F77B4",
-        
-        "Currículo 2017"="#D62728"
-        
-      )
-      
-    ) +
-    
-    scale_y_continuous(
-      
-      limits = c(
-        
-        0,
-        
-        max(df$Taxa)*1.15
-        
+        "Currículo 1999" = "#1F77B4",
+        "Currículo 2017" = "#D62728"
       )
       
     ) +
@@ -495,35 +382,33 @@ plotar_evasao <- function(arquivo){
       
       x = "Período de ingresso",
       
-      y = "Taxa (%)"
+      y = "Taxa de evasão (%)",
+      
+      colour = "Currículo"
       
     ) +
     
-    theme_bw(base_size = 13) +
+    expand_limits(y = 0) +
+    
+    theme_classic(base_size = 13) +
     
     theme(
       
-      legend.position = "none",
-      
       plot.title = element_text(
-        
-        face="bold",
-        
-        hjust=.5
-        
+        face = "bold",
+        hjust = .5
       ),
       
+      legend.position = "top",
+      
       axis.text.x = element_text(
-        
-        angle=45,
-        
-        hjust=1
-        
+        angle = 45,
+        hjust = 1
       )
       
     )
   
-  print(grafico)
+  print(g)
   
   ggsave(
     
@@ -532,22 +417,18 @@ plotar_evasao <- function(arquivo){
       pasta_graficos,
       
       paste0(
-        
         "figura_5_",
-        
         periodo,
-        
-        ".png"
-        
+        "_evasao.png"
       )
       
     ),
     
-    plot = grafico,
+    plot = g,
     
     width = 11,
     
-    height = 5.5,
+    height = 6,
     
     dpi = 300
     
@@ -555,15 +436,89 @@ plotar_evasao <- function(arquivo){
   
 }
 
-#-------------------------------------------------------
-# Executar
-#-------------------------------------------------------
 
-walk(
-  arquivos,
-  plotar_evasao
+# =====================================================
+# Gerar tabelas e gráficos
+# =====================================================
+
+lista_tabelas <- list()
+
+for(i in 1:4){
+  
+  tabela <- calcular_periodo(i)
+  
+  lista_tabelas[[paste0("Periodo_",i)]] <- tabela
+  
+  cat("\n====================================\n")
+  cat("EVASÃO -",i,"º PERÍODO\n")
+  cat("====================================\n")
+  
+  print(tabela)
+  
+  write_csv2(
+    
+    tabela,
+    
+    file.path(
+      
+      pasta_tabelas,
+      
+      paste0(
+        "evasao_periodo",
+        i,
+        ".csv"
+      )
+      
+    )
+    
+  )
+  
+  gerar_grafico(
+    tabela,
+    i
+  )
+  
+}
+
+# =====================================================
+# Tabela consolidada
+# =====================================================
+
+tabela_geral <- bind_rows(
+
+  lista_tabelas,
+
+  .id = "Periodo"
+
 )
 
-cat("\n====================================\n")
-cat("GRÁFICOS GERADOS\n")
-cat("====================================\n")
+write_csv2(
+
+  tabela_geral,
+
+  file.path(
+
+    pasta_tabelas,
+
+    "evasao_todos_periodos.csv"
+
+  )
+
+)
+
+cat("\n=========================================\n")
+cat("PROCESSAMENTO CONCLUÍDO\n")
+cat("=========================================\n")
+
+cat("\nTabelas:\n")
+cat(pasta_tabelas,"\n")
+
+cat("\nGráficos:\n")
+cat(pasta_graficos,"\n")
+
+
+tabela4 <- calcular_periodo(4)
+
+print(tabela4)
+
+gerar_grafico(tabela4,4)
