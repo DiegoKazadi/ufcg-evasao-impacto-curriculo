@@ -5,6 +5,7 @@
 
 library(readr)
 library(dplyr)
+library(ggplot2)
 
 # =====================================================
 # Diretórios
@@ -176,85 +177,51 @@ ingressantes <- dados %>%
 # =====================================================
 # Função de cálculo
 # =====================================================
-
 calcular_periodo <- function(periodo){
   
+  # Conversão:
+  # P1 -> 0
+  # P2 -> 1
+  # P3 -> 2
+  # P4 -> 3
+  
+  periodo_relativo_desejado <- periodo - 1
+  
   evadidos <- dados %>%
-    
-    filter(
-      
-      periodo_relativo == periodo
-      
-    ) %>%
-    
+    filter(periodo_relativo == periodo_relativo_desejado) %>%
     group_by(
-      
       `Curriculo Entrada`,
-      
       `Periodo de Ingresso`
-      
     ) %>%
-    
     summarise(
-      
       Evadidos = n(),
-      
-      .groups="drop"
-      
+      .groups = "drop"
     )
   
   tabela <- ingressantes %>%
-    
     left_join(
-      
       evadidos,
-      
-      by=c(
-        
+      by = c(
         "Curriculo Entrada",
-        
         "Periodo de Ingresso"
-        
       )
-      
     ) %>%
-    
     mutate(
-      
-      Evadidos = ifelse(
-        
-        is.na(Evadidos),
-        
-        0,
-        
-        Evadidos
-        
-      ),
-      
+      Evadidos = coalesce(Evadidos, 0L),
       Taxa = round(
-        
-        100 *
-          Evadidos /
-          Ingressantes,
-        
+        100 * Evadidos / Ingressantes,
         2
-        
       )
-      
     ) %>%
-    
     arrange(
-      
       `Curriculo Entrada`,
-      
       `Periodo de Ingresso`
-      
     )
   
   return(tabela)
   
 }
-
+################################################################################
 # =====================================================
 # Gerar tabelas
 # =====================================================
@@ -279,7 +246,7 @@ for(i in 1:4){
   
   print(tabela)
   
-  write_csv(
+  write_csv2(
     
     tabela,
     
@@ -303,73 +270,300 @@ for(i in 1:4){
   
 }
 
+
+
+
+
+###############################################################################
+
 # =====================================================
-# Resumo
+# GERAR GRÁFICOS DAS TABELAS DE EVASÃO
 # =====================================================
 
-cat("\n====================================\n")
-cat("ARQUIVOS GERADOS\n")
-cat("====================================\n")
+library(ggplot2)
+library(readr)
+library(dplyr)
+library(purrr)
 
-cat(
-  
-  "\n- evasao_periodo1.csv",
-  "\n- evasao_periodo2.csv",
-  "\n- evasao_periodo3.csv",
-  "\n- evasao_periodo4.csv\n"
-  
+#-------------------------------------------------------
+# Pasta dos gráficos
+#-------------------------------------------------------
+
+pasta_graficos <- file.path(
+  pasta_resultados,
+  "graficos"
 )
 
+dir.create(
+  pasta_graficos,
+  recursive = TRUE,
+  showWarnings = FALSE
+)
 
-## Testes para visualizar algumas saídas 
+#-------------------------------------------------------
+# Arquivos
+#-------------------------------------------------------
 
-dados %>%
-  count(Status)
+arquivos <- list.files(
+  pasta_tabelas,
+  pattern = "^evasao_periodo[1-4]\\.csv$",
+  full.names = TRUE
+)
 
-dados %>%
-  filter(
-    periodo_relativo == 1
-  ) %>%
-  count(Status)
+print(arquivos)
 
-#
+#-------------------------------------------------------
+# Formatar período
+#-------------------------------------------------------
 
-dados %>%
-  filter(
-    `Periodo de Ingresso` == 20111,
-    periodo_relativo == 1
-  ) %>%
-  select(
-    Matricula,
-    Status,
-    `Tipo de Evasao`,
-    `Periodo de Ingresso`,
-    `Periodo de Evasao`
-  ) %>%
-  arrange(`Tipo de Evasao`)
-
-#
-
-dados %>%
-  filter(
-    `Periodo de Ingresso` == 20111,
-    periodo_relativo == 1
-  ) %>%
-  count(`Tipo de Evasao`)
-
-#
-
-dados %>%
-  filter(
-    `Curriculo Entrada` == 1999,
-    periodo_relativo == 1
-  ) %>%
-  count(
-    `Periodo de Ingresso`,
-    `Tipo de Evasao`
-  ) %>%
-  arrange(
-    `Periodo de Ingresso`,
-    desc(n)
+formatar_periodo <- function(x){
+  
+  x <- as.character(x)
+  
+  paste0(
+    substr(x,1,4),
+    ".",
+    substr(x,5,5)
   )
+  
+}
 
+#-------------------------------------------------------
+# Função dos gráficos
+#-------------------------------------------------------
+
+plotar_evasao <- function(arquivo){
+  
+  cat("\n====================================\n")
+  cat("LENDO:", basename(arquivo), "\n")
+  cat("====================================\n")
+  
+  periodo <- gsub(
+    "evasao_periodo([0-9]+)\\.csv",
+    "\\1",
+    basename(arquivo)
+  )
+  
+  #---------------------------------------------------
+  # Ler corretamente
+  #---------------------------------------------------
+  
+  df <- read_csv2(
+    arquivo,
+    show_col_types = FALSE
+  )
+  
+  cat("\nNOMES DAS COLUNAS\n")
+  print(names(df))
+  
+  cat("\nPRIMEIRAS LINHAS\n")
+  print(head(df))
+  
+  #---------------------------------------------------
+  # Converter tipos
+  #---------------------------------------------------
+  
+  df <- df %>%
+    
+    mutate(
+      
+      `Curriculo Entrada` =
+        as.factor(`Curriculo Entrada`),
+      
+      `Periodo de Ingresso` =
+        as.numeric(`Periodo de Ingresso`),
+      
+      Ingressantes =
+        as.numeric(Ingressantes),
+      
+      Evadidos =
+        as.numeric(Evadidos),
+      
+      Taxa =
+        as.numeric(Taxa)
+      
+    )
+  
+  cat("\nRESUMO DA TAXA\n")
+  print(summary(df$Taxa))
+  
+  cat("\nVALORES DA TAXA\n")
+  print(df$Taxa)
+  
+  df <- df %>%
+    
+    mutate(
+      
+      Periodo =
+        formatar_periodo(`Periodo de Ingresso`),
+      
+      Curriculo =
+        factor(
+          
+          `Curriculo Entrada`,
+          
+          levels = c("1999","2017"),
+          
+          labels = c(
+            "Currículo 1999",
+            "Currículo 2017"
+          )
+          
+        )
+      
+    )
+  
+  #---------------------------------------------------
+  # Gráfico
+  #---------------------------------------------------
+  
+  grafico <- ggplot(
+    
+    df,
+    
+    aes(
+      
+      x = Periodo,
+      
+      y = Taxa,
+      
+      fill = Curriculo
+      
+    )
+    
+  ) +
+    
+    geom_col(
+      
+      width = .75
+      
+    ) +
+    
+    geom_text(
+      
+      aes(
+        
+        label = sprintf("%.2f%%", Taxa)
+        
+      ),
+      
+      vjust = -0.4,
+      
+      size = 3.5
+      
+    ) +
+    
+    facet_wrap(
+      
+      ~Curriculo,
+      
+      scales = "free_x"
+      
+    ) +
+    
+    scale_fill_manual(
+      
+      values = c(
+        
+        "Currículo 1999"="#1F77B4",
+        
+        "Currículo 2017"="#D62728"
+        
+      )
+      
+    ) +
+    
+    scale_y_continuous(
+      
+      limits = c(
+        
+        0,
+        
+        max(df$Taxa)*1.15
+        
+      )
+      
+    ) +
+    
+    labs(
+      
+      title = paste0(
+        "Taxa de evasão no ",
+        periodo,
+        "º período"
+      ),
+      
+      x = "Período de ingresso",
+      
+      y = "Taxa (%)"
+      
+    ) +
+    
+    theme_bw(base_size = 13) +
+    
+    theme(
+      
+      legend.position = "none",
+      
+      plot.title = element_text(
+        
+        face="bold",
+        
+        hjust=.5
+        
+      ),
+      
+      axis.text.x = element_text(
+        
+        angle=45,
+        
+        hjust=1
+        
+      )
+      
+    )
+  
+  print(grafico)
+  
+  ggsave(
+    
+    filename = file.path(
+      
+      pasta_graficos,
+      
+      paste0(
+        
+        "figura_5_",
+        
+        periodo,
+        
+        ".png"
+        
+      )
+      
+    ),
+    
+    plot = grafico,
+    
+    width = 11,
+    
+    height = 5.5,
+    
+    dpi = 300
+    
+  )
+  
+}
+
+#-------------------------------------------------------
+# Executar
+#-------------------------------------------------------
+
+walk(
+  arquivos,
+  plotar_evasao
+)
+
+cat("\n====================================\n")
+cat("GRÁFICOS GERADOS\n")
+cat("====================================\n")
