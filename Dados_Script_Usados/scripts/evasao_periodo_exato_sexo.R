@@ -199,7 +199,14 @@ for(i in seq_along(lista_tabelas)){
   gerar_grafico(lista_tabelas[[i]], i)
 }
 
-tabela_geral <- bind_rows(lista_tabelas, .id="Periodo")
+# =====================================================
+# Tabela consolidada
+# =====================================================
+
+tabela_geral <- bind_rows(
+  lista_tabelas,
+  .id = "Periodo"
+)
 
 write_csv2(
   tabela_geral,
@@ -209,4 +216,16 @@ write_csv2(
   )
 )
 
-cat("Processamento concluído.\n")
+cat("\n=========================================\n")
+cat("PROCESSAMENTO CONCLUÍDO\n")
+cat("=========================================\n")
+
+cat("\nTabelas salvas em:\n")
+cat(pasta_tabelas, "\n")
+
+cat("\nGráficos salvos em:\n")
+cat(pasta_graficos, "\n")
+
+cat("\nQuantidade de tabelas:", length(lista_tabelas), "\n")
+
+print(names(lista_tabelas))
