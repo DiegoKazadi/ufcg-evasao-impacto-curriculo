@@ -62,14 +62,14 @@ dados <- dados %>%
   )
 
 # =====================================================
-# Ingressantes por sexo
+# Ingressantes por periodo evasao
 # =====================================================
 
 ingressantes <- dados %>%
   group_by(
     `Curriculo Entrada`,
     `Periodo de Ingresso`,
-    Sexo
+    `Periodo de Evasao`
   ) %>%
   summarise(
     Ingressantes = n(),
@@ -77,9 +77,9 @@ ingressantes <- dados %>%
   )
 
 calcular_periodo <- function(periodo){
-
+  
   periodo_relativo_desejado <- periodo - 1
-
+  
   evadidos <- dados %>%
     filter(periodo_relativo == periodo_relativo_desejado) %>%
     group_by(
@@ -91,14 +91,13 @@ calcular_periodo <- function(periodo){
       Evadidos = n(),
       .groups = "drop"
     )
-
+  
   ingressantes %>%
     left_join(
       evadidos,
       by = c(
         "Curriculo Entrada",
-        "Periodo de Ingresso",
-        "Sexo"
+        "Periodo de Ingresso"
       )
     ) %>%
     mutate(
@@ -115,13 +114,13 @@ calcular_periodo <- function(periodo){
 lista_tabelas <- list()
 
 for(i in 1:4){
-
+  
   tabela <- calcular_periodo(i)
-
+  
   lista_tabelas[[paste0("Periodo_", i)]] <- tabela
-
+  
   print(tabela)
-
+  
   write_csv2(
     tabela,
     file.path(
@@ -144,7 +143,7 @@ formatar_periodo <- function(x){
 }
 
 gerar_grafico <- function(tabela, periodo){
-
+  
   tabela_plot <- tabela %>%
     mutate(
       Periodo = formatar_periodo(`Periodo de Ingresso`),
@@ -154,7 +153,7 @@ gerar_grafico <- function(tabela, periodo){
         labels = c("Currículo 1999","Currículo 2017")
       )
     )
-
+  
   g <- ggplot(
     tabela_plot,
     aes(
@@ -163,26 +162,40 @@ gerar_grafico <- function(tabela, periodo){
       fill = Sexo
     )
   ) +
-    geom_col(position="dodge", colour="black", linewidth=.2) +
-    geom_text(
-      aes(label=sprintf("%.1f",Taxa)),
-      position=position_dodge(.9),
-      vjust=-.35,
-      size=3
+    geom_col(
+      position=position_dodge(width=0.70),
+      width=0.70,
+      colour="black",
+      linewidth=0.2
     ) +
-    facet_wrap(~Curriculo, ncol=1) +
+    geom_text(
+      aes(label=ifelse(Taxa==0,"",sprintf("%.1f",Taxa))),
+      position=position_dodge(width=0.70),
+      vjust=-0.35,
+      size=3,
+      show.legend=FALSE
+    ) +
+    scale_fill_manual(
+      values=c(
+        "FEMININO"="#F8766D",
+        "MASCULINO"="#00BFC4"
+      )
+    ) +
+    scale_y_continuous(
+      expand=expansion(mult=c(0,0.10))
+    ) +
     labs(
       title=paste("Taxa de evasão por sexo -", periodo, "º período"),
       x="Período de ingresso",
       y="Taxa de evasão (%)"
     ) +
-    theme_classic() +
+    theme_classic(base_size=13) +
     theme(
       legend.position="top",
       axis.text.x=element_text(angle=45,hjust=1),
       plot.title=element_text(face="bold",hjust=.5)
     )
-
+  
   ggsave(
     filename=file.path(
       pasta_graficos,
@@ -199,14 +212,7 @@ for(i in seq_along(lista_tabelas)){
   gerar_grafico(lista_tabelas[[i]], i)
 }
 
-# =====================================================
-# Tabela consolidada
-# =====================================================
-
-tabela_geral <- bind_rows(
-  lista_tabelas,
-  .id = "Periodo"
-)
+tabela_geral <- bind_rows(lista_tabelas, .id="Periodo")
 
 write_csv2(
   tabela_geral,
@@ -216,16 +222,5 @@ write_csv2(
   )
 )
 
-cat("\n=========================================\n")
-cat("PROCESSAMENTO CONCLUÍDO\n")
-cat("=========================================\n")
+cat("Processamento concluído.\n")
 
-cat("\nTabelas salvas em:\n")
-cat(pasta_tabelas, "\n")
-
-cat("\nGráficos salvos em:\n")
-cat(pasta_graficos, "\n")
-
-cat("\nQuantidade de tabelas:", length(lista_tabelas), "\n")
-
-print(names(lista_tabelas))

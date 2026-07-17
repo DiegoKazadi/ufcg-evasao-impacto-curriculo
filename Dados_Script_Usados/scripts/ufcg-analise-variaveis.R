@@ -153,3 +153,5 @@ for(v in variaveis){
 }
 
 cat("\nPROCESSAMENTO FINALIZADO.\n")
+
+colnames(dados)
