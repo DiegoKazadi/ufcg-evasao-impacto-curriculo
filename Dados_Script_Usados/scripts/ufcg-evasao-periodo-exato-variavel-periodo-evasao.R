@@ -85,7 +85,7 @@ calcular_periodo <- function(periodo){
     group_by(
       `Curriculo Entrada`,
       `Periodo de Ingresso`,
-      Sexo
+      
     ) %>%
     summarise(
       Evadidos = n(),
@@ -107,7 +107,7 @@ calcular_periodo <- function(periodo){
     arrange(
       `Curriculo Entrada`,
       `Periodo de Ingresso`,
-      Sexo
+     
     )
 }
 
@@ -224,3 +224,4 @@ write_csv2(
 
 cat("Processamento concluído.\n")
 
+colnames(dados)
