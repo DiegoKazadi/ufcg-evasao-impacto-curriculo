@@ -182,3 +182,4 @@ write.csv2(
 )
 
 cat("\nTabela 5.18 gerada com sucesso.\n")
+
