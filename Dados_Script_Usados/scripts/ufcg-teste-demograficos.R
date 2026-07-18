@@ -4,6 +4,7 @@
 # Tabela 5.18
 #=========================================================
 
+install.packages("lsr")
 rm(list = ls())
 
 library(readr)
