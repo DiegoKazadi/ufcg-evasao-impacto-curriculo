@@ -283,58 +283,41 @@ write.csv2(
 # Tabela 5.16
 # Distribuição da amostra utilizada nos testes
 #=========================================================
-
 tabela_5_16 <- dados %>%
   group_by(`Curriculo Entrada`) %>%
   summarise(
-    
     Ingressantes = n(),
-    
     Ativos = sum(Evadiu == "Não"),
-    
     Evadidos = sum(Evadiu == "Sim"),
-    
     .groups = "drop"
-    
   )
+
+tabela_total <- tibble(
+  `Curriculo Entrada` = "Total",
+  Ingressantes = sum(tabela_5_16$Ingressantes),
+  Ativos = sum(tabela_5_16$Ativos),
+  Evadidos = sum(tabela_5_16$Evadidos)
+)
 
 tabela_5_16 <- bind_rows(
-  
   tabela_5_16,
-  
-  data.frame(
-    
-    `Curriculo Entrada` = "Total",
-    
-    Ingressantes = sum(tabela_5_16$Ingressantes),
-    
-    Ativos = sum(tabela_5_16$Ativos),
-    
-    Evadidos = sum(tabela_5_16$Evadidos)
-    
-  )
-  
+  tabela_total
 )
 
-write.csv2(
-  
-  tabela_5_16,
-  
-  file.path(
-    
-    pasta_tabelas,
-    
-    "Tabela_5_16_Distribuicao_Amostra_Testes.csv"
-    
-  ),
-  
-  row.names = FALSE
-  
-)
+# ======================================================
+# Visualizar resultado
+# ======================================================
 
-cat("\nTabela 5.16 gerada com sucesso.\n")
 print(tabela_5_16)
 
+write.csv2(
+  tabela_5_16,
+  file.path(
+    pasta_tabelas,
+    "Tabela_5_16_Distribuicao_Amostra_Testes.csv"
+  ),
+  row.names = FALSE
+)
 
 
 
