@@ -81,7 +81,11 @@ cat("Número de estudantes evadidos:", nrow(dados), "\n")
 #=========================================================
 
 dados <- dados %>%
-  filter(!is.na(`Tipo de Evasao`))
+  filter(
+    Status == "INATIVO",
+    !is.na(`Tipo de Evasao`),
+    `Tipo de Evasao` != "GRADUADO"
+  )
 
 #=========================================================
 # Tabela de contingência
@@ -96,7 +100,7 @@ tabela <- table(
 )
 
 #=========================================================
-# Teste estatístico
+# Teste Qui-quadrado
 #=========================================================
 
 qui <- suppressWarnings(
@@ -105,23 +109,23 @@ qui <- suppressWarnings(
 
 if(any(qui$expected < 5)){
   
-  teste <- fisher.test(tabela)
+  qui <- chisq.test(
+    tabela,
+    simulate.p.value = TRUE,
+    B = 10000
+  )
   
-  nome_teste <- "Fisher"
-  
-  estatistica <- NA
-  
-  pvalor <- teste$p.value
+  nome_teste <- "Qui-quadrado (Monte Carlo)"
   
 }else{
   
   nome_teste <- "Qui-quadrado"
   
-  estatistica <- unname(qui$statistic)
-  
-  pvalor <- qui$p.value
-  
 }
+
+estatistica <- unname(qui$statistic)
+
+pvalor <- qui$p.value
 
 #=========================================================
 # V de Cramér
@@ -184,3 +188,6 @@ write.csv2(
 )
 
 cat("\nTabela 5.19 gerada com sucesso.\n")
+
+cat("\nDistribuição dos tipos de evasão:\n")
+print(table(dados$`Tipo de Evasao`))

@@ -1,0 +1,3 @@
+"Variavel";"Teste";"Estatistica";"p_valor";"V_Cramer";"Conclusao"
+"Sexo";"Qui-quadrado";8,522;"0,0035";0,071;"Diferença significativa"
+"faixa_etaria";"Qui-quadrado";29,336;"<0,001";0,129;"Diferença significativa"
