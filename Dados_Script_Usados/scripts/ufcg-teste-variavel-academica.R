@@ -191,3 +191,4 @@ cat("\nTabela 5.19 gerada com sucesso.\n")
 
 cat("\nDistribuição dos tipos de evasão:\n")
 print(table(dados$`Tipo de Evasao`))
+
