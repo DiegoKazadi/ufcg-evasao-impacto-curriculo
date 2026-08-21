@@ -240,3 +240,138 @@ cat(
   ),
   "\n"
 )
+
+
+#=========================================================
+# DIAGNÓSTICO DOS ALUNOS NÃO ENCONTRADOS NO HISTÓRICO
+#=========================================================
+
+# Matrículas da amostra
+matriculas_amostra <- amostra_final %>%
+  distinct(Matricula)
+
+# Matrículas do histórico
+matriculas_historico <- historico %>%
+  distinct(MATRICULA)
+
+# Alunos encontrados
+alunos_com_historico <- matriculas_amostra %>%
+  semi_join(
+    matriculas_historico,
+    by = c("Matricula" = "MATRICULA")
+  )
+
+# Alunos não encontrados
+alunos_sem_historico <- matriculas_amostra %>%
+  anti_join(
+    matriculas_historico,
+    by = c("Matricula" = "MATRICULA")
+  )
+
+cat("\n=========================================================\n")
+cat("COBERTURA DO HISTÓRICO\n")
+cat("=========================================================\n")
+
+cat(
+  "\nTotal da amostra:",
+  nrow(matriculas_amostra),
+  "\n"
+)
+
+cat(
+  "Encontrados:",
+  nrow(alunos_com_historico),
+  "\n"
+)
+
+cat(
+  "Não encontrados:",
+  nrow(alunos_sem_historico),
+  "\n"
+)
+
+#=========================================================
+# 1. Distribuição dos encontrados por currículo
+#=========================================================
+
+cat("\n=========================================================\n")
+cat("ENCONTRADOS POR CURRÍCULO\n")
+cat("=========================================================\n")
+
+amostra_final %>%
+  semi_join(
+    alunos_com_historico,
+    by = "Matricula"
+  ) %>%
+  count(
+    Curriculo,
+    name = "alunos"
+  ) %>%
+  print()
+
+#=========================================================
+# 2. Distribuição dos NÃO encontrados por currículo
+#=========================================================
+
+cat("\n=========================================================\n")
+cat("NÃO ENCONTRADOS POR CURRÍCULO\n")
+cat("=========================================================\n")
+
+amostra_final %>%
+  semi_join(
+    alunos_sem_historico,
+    by = "Matricula"
+  ) %>%
+  count(
+    Curriculo,
+    name = "alunos"
+  ) %>%
+  print()
+
+#=========================================================
+# 3. NÃO encontrados por período de ingresso
+#=========================================================
+
+cat("\n=========================================================\n")
+cat("NÃO ENCONTRADOS POR PERÍODO DE INGRESSO\n")
+cat("=========================================================\n")
+
+amostra_final %>%
+  semi_join(
+    alunos_sem_historico,
+    by = "Matricula"
+  ) %>%
+  count(
+    Curriculo,
+    `Periodo de Ingresso`,
+    name = "alunos"
+  ) %>%
+  arrange(
+    Curriculo,
+    `Periodo de Ingresso`
+  ) %>%
+  print()
+
+#=========================================================
+# 4. Mostrar alguns alunos não encontrados
+#=========================================================
+
+cat("\n=========================================================\n")
+cat("EXEMPLOS DE ALUNOS NÃO ENCONTRADOS\n")
+cat("=========================================================\n")
+
+amostra_final %>%
+  semi_join(
+    alunos_sem_historico,
+    by = "Matricula"
+  ) %>%
+  select(
+    Matricula,
+    `Periodo de Ingresso`,
+    Curriculo,
+    Status,
+    `Tipo de Evasao`,
+    `Periodo de Evasao`
+  ) %>%
+  head(20) %>%
+  print()
