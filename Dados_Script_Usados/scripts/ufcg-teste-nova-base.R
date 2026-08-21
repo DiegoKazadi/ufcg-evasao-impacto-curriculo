@@ -1,12 +1,13 @@
 #=========================================================
 # DISSERTAÇÃO - ANÁLISE COMPARATIVA ENTRE DISCIPLINAS
-# Teste da nova base de históricos
-#=========================================================
+# Seção 5.7.5
+
 
 rm(list = ls())
 
 library(readr)
 library(dplyr)
+library(readxl)
 
 options(scipen = 999)
 
@@ -30,9 +31,7 @@ pasta_processados <- file.path(
 # 2. Nome da nova tabela
 #=========================================================
 
-arquivo_historicos <- "historicos_de_todos_os_alunos_ingressaram_partir_2002.csv"
-
-# Se o nome do arquivo for diferente, altere somente acima.
+arquivo_historicos <- "historicos_todos_alunos_ingressaram_2002.xlsx"
 
 #=========================================================
 # 3. Carregar amostra final
@@ -50,14 +49,12 @@ amostra <- read_csv2(
 # 4. Carregar nova tabela de históricos
 #=========================================================
 
-historicos <- read_csv2(
+historicos <- read_excel(
   file.path(
     pasta_dados,
     arquivo_historicos
-  ),
-  show_col_types = FALSE
+  )
 )
-
 #=========================================================
 # 5. Explorar AMOSTRA FINAL
 #=========================================================
@@ -429,3 +426,18 @@ if ("DISCIPLINA" %in% names(historicos)) {
 cat("\n=========================================================\n")
 cat("TESTE CONCLUÍDO\n")
 cat("=========================================================\n")
+
+#=========================================================
+# VERIFICAR ARQUIVOS DISPONÍVEIS NA PASTA DADOS
+#=========================================================
+
+cat("\n=========================================================\n")
+cat("ARQUIVOS DISPONÍVEIS NA PASTA DADOS\n")
+cat("=========================================================\n")
+
+arquivos_dados <- list.files(
+  pasta_dados,
+  full.names = FALSE
+)
+
+print(arquivos_dados)
