@@ -176,7 +176,6 @@ cat("ETAPA 2 CONCLUÍDA\n")
 cat("=========================================================\n")
 
 #=========================================================
-# DISSERTAÇÃO - ANÁLISE COMPARATIVA ENTRE DISCIPLINAS
 # Etapa 3 - Validação da chave de relacionamento
 #=========================================================
 
