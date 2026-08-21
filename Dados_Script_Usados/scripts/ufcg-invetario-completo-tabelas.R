@@ -504,3 +504,461 @@ cat(
 cat("\n=========================================================\n")
 cat("FIM\n")
 cat("=========================================================\n")
+
+
+
+
+# =========================================================
+# TESTE DE COMPATIBILIDADE DO HISTÓRICO COM A AMOSTRA
+# =========================================================
+
+rm(list = ls())
+
+library(readr)
+library(dplyr)
+
+options(scipen = 999)
+
+# =========================================================
+# 1. DIRETÓRIOS
+# =========================================================
+
+projeto <- "C:/Users/Big Data/Documents/Master UFCG/Semestre 2026.1/ufcg-evasao-impacto-curriculo/Dados_Script_Usados"
+
+pasta_dados <- file.path(
+  projeto,
+  "dados"
+)
+
+pasta_processados <- file.path(
+  projeto,
+  "dados_processados"
+)
+
+# =========================================================
+# 2. CARREGAR AMOSTRA
+# =========================================================
+
+amostra <- read_csv2(
+  file.path(
+    pasta_processados,
+    "amostra_final_dissertacao.csv"
+  ),
+  show_col_types = FALSE
+)
+
+# =========================================================
+# 3. CARREGAR TABELAS DE HISTÓRICO
+# =========================================================
+
+tabela_historico <- read_csv2(
+  file.path(
+    pasta_dados,
+    "tabela_historico.csv"
+  ),
+  show_col_types = FALSE
+)
+
+matriculas <- read_csv2(
+  file.path(
+    pasta_dados,
+    "matriculas.csv"
+  ),
+  show_col_types = FALSE
+)
+
+historico <- read_csv2(
+  file.path(
+    pasta_dados,
+    "historico.csv"
+  ),
+  show_col_types = FALSE
+)
+
+# =========================================================
+# 4. PREPARAR MATRÍCULAS DA AMOSTRA
+# =========================================================
+
+matriculas_amostra <- amostra %>%
+  transmute(
+    MATRICULA_AMOSTRA = as.character(Matricula)
+  ) %>%
+  distinct()
+
+cat("\n=========================================================\n")
+cat("AMOSTRA FINAL\n")
+cat("=========================================================\n")
+
+cat(
+  "\nNúmero de registros da amostra:",
+  nrow(amostra),
+  "\n"
+)
+
+cat(
+  "Matrículas únicas:",
+  nrow(matriculas_amostra),
+  "\n"
+)
+
+# =========================================================
+# 5. PADRONIZAR MATRÍCULAS
+# =========================================================
+
+tabela_historico <- tabela_historico %>%
+  mutate(
+    MATRICULA = as.character(MATRICULA)
+  )
+
+matriculas <- matriculas %>%
+  mutate(
+    MATRICULA = as.character(MATRICULA)
+  )
+
+historico <- historico %>%
+  mutate(
+    MATRICULA = as.character(MATRICULA)
+  )
+
+# =========================================================
+# 6. FUNÇÃO DE TESTE
+# =========================================================
+
+testar_historico <- function(
+    dados,
+    nome_tabela,
+    coluna_periodo = NULL,
+    coluna_disciplina = NULL
+) {
+  
+  cat("\n\n")
+  cat("=========================================================\n")
+  cat("TESTANDO:", nome_tabela, "\n")
+  cat("=========================================================\n")
+  
+  # -------------------------------------------------------
+  # Matrículas únicas
+  # -------------------------------------------------------
+  
+  matriculas_tabela <- dados %>%
+    filter(
+      !is.na(MATRICULA)
+    ) %>%
+    distinct(
+      MATRICULA
+    )
+  
+  cat(
+    "\nMatrículas únicas na tabela:",
+    nrow(matriculas_tabela),
+    "\n"
+  )
+  
+  # -------------------------------------------------------
+  # Match com amostra
+  # -------------------------------------------------------
+  
+  match <- matriculas_amostra %>%
+    mutate(
+      encontrada =
+        MATRICULA_AMOSTRA %in%
+        matriculas_tabela$MATRICULA
+    )
+  
+  encontradas <- sum(
+    match$encontrada
+  )
+  
+  nao_encontradas <- sum(
+    !match$encontrada
+  )
+  
+  percentual <- round(
+    encontradas /
+      nrow(match) *
+      100,
+    2
+  )
+  
+  cat(
+    "\nMatrículas da amostra encontradas:",
+    encontradas,
+    "\n"
+  )
+  
+  cat(
+    "Matrículas NÃO encontradas:",
+    nao_encontradas,
+    "\n"
+  )
+  
+  cat(
+    "Cobertura:",
+    percentual,
+    "%\n"
+  )
+  
+  # -------------------------------------------------------
+  # Filtrar histórico para nossa amostra
+  # -------------------------------------------------------
+  
+  historico_amostra <- dados %>%
+    semi_join(
+      matriculas_amostra,
+      by = c(
+        "MATRICULA" =
+          "MATRICULA_AMOSTRA"
+      )
+    )
+  
+  cat(
+    "\nRegistros de histórico pertencentes à amostra:",
+    nrow(historico_amostra),
+    "\n"
+  )
+  
+  # -------------------------------------------------------
+  # Quantidade de registros por matrícula
+  # -------------------------------------------------------
+  
+  resumo_alunos <- historico_amostra %>%
+    count(
+      MATRICULA,
+      name = "N_REGISTROS"
+    )
+  
+  if (nrow(resumo_alunos) > 0) {
+    
+    cat(
+      "\nRegistros por aluno:\n"
+    )
+    
+    print(
+      resumo_alunos %>%
+        summarise(
+          minimo = min(N_REGISTROS),
+          media = round(
+            mean(N_REGISTROS),
+            2
+          ),
+          mediana = median(
+            N_REGISTROS
+          ),
+          maximo = max(
+            N_REGISTROS
+          )
+        )
+    )
+  }
+  
+  # -------------------------------------------------------
+  # Disciplinas únicas
+  # -------------------------------------------------------
+  
+  if (!is.null(coluna_disciplina)) {
+    
+    cat(
+      "\nDisciplinas únicas na amostra:",
+      n_distinct(
+        historico_amostra[[
+          coluna_disciplina
+        ]]
+      ),
+      "\n"
+    )
+  }
+  
+  # -------------------------------------------------------
+  # Períodos
+  # -------------------------------------------------------
+  
+  if (!is.null(coluna_periodo)) {
+    
+    cat(
+      "\nPeríodo mínimo:",
+      min(
+        historico_amostra[[
+          coluna_periodo
+        ]],
+        na.rm = TRUE
+      ),
+      "\n"
+    )
+    
+    cat(
+      "Período máximo:",
+      max(
+        historico_amostra[[
+          coluna_periodo
+        ]],
+        na.rm = TRUE
+      ),
+      "\n"
+    )
+    
+    cat(
+      "\nPeríodos encontrados:\n"
+    )
+    
+    print(
+      sort(
+        unique(
+          historico_amostra[[
+            coluna_periodo
+          ]]
+        )
+      )
+    )
+  }
+  
+  # -------------------------------------------------------
+  # Primeiras matrículas da amostra
+  # -------------------------------------------------------
+  
+  exemplos <- matriculas_amostra %>%
+    slice_head(
+      n = 5
+    )
+  
+  cat(
+    "\n=========================================================\n"
+  )
+  
+  cat(
+    "EXEMPLOS DE HISTÓRICO DA AMOSTRA\n"
+  )
+  
+  cat(
+    "=========================================================\n"
+  )
+  
+  for (mat in exemplos$MATRICULA_AMOSTRA) {
+    
+    cat(
+      "\nMATRÍCULA:",
+      mat,
+      "\n"
+    )
+    
+    print(
+      historico_amostra %>%
+        filter(
+          MATRICULA == mat
+        ) %>%
+        head(10)
+    )
+  }
+  
+  # -------------------------------------------------------
+  # Retornar histórico filtrado
+  # -------------------------------------------------------
+  
+  return(
+    list(
+      match = match,
+      historico_amostra = historico_amostra,
+      resumo_alunos = resumo_alunos
+    )
+  )
+}
+
+
+# =========================================================
+# 7. TESTAR TABELA_HISTORICO
+# =========================================================
+
+resultado_tabela_historico <- testar_historico(
+  dados = tabela_historico,
+  nome_tabela = "tabela_historico.csv",
+  coluna_periodo = "PERIODO",
+  coluna_disciplina = "DISCIPLINA"
+)
+
+
+# =========================================================
+# 8. TESTAR MATRICULAS
+# =========================================================
+
+resultado_matriculas <- testar_historico(
+  dados = matriculas,
+  nome_tabela = "matriculas.csv",
+  coluna_periodo = "TERMO",
+  coluna_disciplina = "NOME"
+)
+
+
+# =========================================================
+# 9. TESTAR HISTORICO
+# =========================================================
+
+resultado_historico <- testar_historico(
+  dados = historico,
+  nome_tabela = "historico.csv",
+  coluna_periodo = "PERIODO",
+  coluna_disciplina = "DISCIPLINA"
+)
+
+
+# =========================================================
+# 10. COMPARAÇÃO FINAL
+# =========================================================
+
+cat("\n\n")
+cat("=========================================================\n")
+cat("COMPARAÇÃO FINAL\n")
+cat("=========================================================\n")
+
+comparacao <- tibble(
+  tabela = c(
+    "tabela_historico.csv",
+    "matriculas.csv",
+    "historico.csv"
+  ),
+  
+  registros = c(
+    nrow(tabela_historico),
+    nrow(matriculas),
+    nrow(historico)
+  ),
+  
+  matriculas_unicas = c(
+    n_distinct(
+      tabela_historico$MATRICULA
+    ),
+    n_distinct(
+      matriculas$MATRICULA
+    ),
+    n_distinct(
+      historico$MATRICULA
+    )
+  ),
+  
+  matriculas_amostra_encontradas = c(
+    sum(
+      resultado_tabela_historico$match$encontrada
+    ),
+    sum(
+      resultado_matriculas$match$encontrada
+    ),
+    sum(
+      resultado_historico$match$encontrada
+    )
+  )
+) %>%
+  mutate(
+    cobertura_percentual =
+      round(
+        matriculas_amostra_encontradas /
+          nrow(matriculas_amostra) *
+          100,
+        2
+      )
+  )
+
+print(
+  comparacao
+)
+
+cat("\n=========================================================\n")
+cat("FIM DO TESTE\n")
+cat("=========================================================\n")
