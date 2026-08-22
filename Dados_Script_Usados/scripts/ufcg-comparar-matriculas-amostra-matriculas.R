@@ -546,22 +546,155 @@ cat(
 
 
 # =========================================================
-# VERIFICAR CÁLCULO I E FMCC I NA TABELA MATRICULAS
+# VERIFICAÇÃO DA TABELA_HISTORICO
+# CÁLCULO I / FMCC I
 # =========================================================
 
 cat("\n=========================================================\n")
-cat("VERIFICAÇÃO: CÁLCULO I / FMCC I\n")
+cat("ANÁLISE - TABELA_HISTORICO\n")
 cat("=========================================================\n")
 
-# ---------------------------------------------------------
-# 1. Verificar os nomes das disciplinas
-# ---------------------------------------------------------
+# =========================================================
+# 1. ESTRUTURA DA MATRÍCULA
+# =========================================================
 
-disciplinas_alvo <- matriculas %>%
+cat("\nClasse da matrícula na amostra:\n")
+print(class(amostra$Matricula))
+
+cat("\nClasse da matrícula no histórico:\n")
+print(class(tabela_historico$MATRICULA))
+
+cat("\nExemplos de matrículas da amostra:\n")
+print(head(amostra$Matricula, 10))
+
+cat("\nExemplos de matrículas do histórico:\n")
+print(head(tabela_historico$MATRICULA, 10))
+
+
+# =========================================================
+# 2. PADRONIZAR MATRÍCULA
+# =========================================================
+
+amostra <- amostra %>%
+  mutate(
+    MATRICULA_JOIN = str_trim(
+      as.character(Matricula)
+    )
+  )
+
+tabela_historico <- tabela_historico %>%
+  mutate(
+    MATRICULA_JOIN = str_trim(
+      as.character(MATRICULA)
+    )
+  )
+
+
+# =========================================================
+# 3. QUANTIDADE DE DÍGITOS
+# =========================================================
+
+cat("\n=========================================================\n")
+cat("QUANTIDADE DE DÍGITOS DAS MATRÍCULAS\n")
+cat("=========================================================\n")
+
+cat("\nAmostra:\n")
+
+print(
+  amostra %>%
+    mutate(
+      DIGITOS = nchar(MATRICULA_JOIN)
+    ) %>%
+    count(
+      DIGITOS
+    )
+)
+
+cat("\nTabela histórico:\n")
+
+print(
+  tabela_historico %>%
+    mutate(
+      DIGITOS = nchar(MATRICULA_JOIN)
+    ) %>%
+    count(
+      DIGITOS
+    )
+)
+
+
+# =========================================================
+# 4. TESTAR COMPATIBILIDADE DAS MATRÍCULAS
+# =========================================================
+
+matriculas_amostra <- amostra %>%
+  distinct(
+    MATRICULA_JOIN
+  )
+
+matriculas_historico <- tabela_historico %>%
+  distinct(
+    MATRICULA_JOIN
+  )
+
+match_historico <- matriculas_amostra %>%
+  mutate(
+    encontrada =
+      MATRICULA_JOIN %in%
+      matriculas_historico$MATRICULA_JOIN
+  )
+
+cat("\n=========================================================\n")
+cat("COMPATIBILIDADE DA MATRÍCULA\n")
+cat("=========================================================\n")
+
+cat(
+  "\nMatrículas únicas na amostra:",
+  nrow(matriculas_amostra),
+  "\n"
+)
+
+cat(
+  "Matrículas únicas no histórico:",
+  nrow(matriculas_historico),
+  "\n"
+)
+
+cat(
+  "Encontradas:",
+  sum(match_historico$encontrada),
+  "\n"
+)
+
+cat(
+  "Não encontradas:",
+  sum(!match_historico$encontrada),
+  "\n"
+)
+
+cat(
+  "Cobertura:",
+  round(
+    mean(match_historico$encontrada) * 100,
+    4
+  ),
+  "%\n"
+)
+
+
+# =========================================================
+# 5. PROCURAR CÁLCULO I E FMCC I
+# =========================================================
+
+cat("\n=========================================================\n")
+cat("DISCIPLINAS DE INTERESSE\n")
+cat("=========================================================\n")
+
+disciplinas_interesse <- tabela_historico %>%
   filter(
     str_detect(
       str_to_upper(
-        str_trim(NOME)
+        str_trim(DISCIPLINA)
       ),
       "CALCULO|CÁLCULO|FMCC"
     )
@@ -569,45 +702,40 @@ disciplinas_alvo <- matriculas %>%
 
 cat(
   "\nTotal de registros encontrados:",
-  nrow(disciplinas_alvo),
+  nrow(disciplinas_interesse),
   "\n"
 )
 
 cat(
-  "Total de matrículas únicas:",
+  "Matrículas únicas:",
   n_distinct(
-    disciplinas_alvo$MATRICULA
+    disciplinas_interesse$MATRICULA_JOIN
   ),
   "\n"
 )
 
-# ---------------------------------------------------------
-# 2. Mostrar os nomes exatos encontrados
-# ---------------------------------------------------------
-
-cat("\n=========================================================\n")
-cat("NOMES EXATOS ENCONTRADOS\n")
-cat("=========================================================\n")
+cat("\nNomes encontrados:\n")
 
 print(
-  disciplinas_alvo %>%
+  disciplinas_interesse %>%
     count(
-      NOME,
+      DISCIPLINA,
       sort = TRUE
     )
 )
 
-# ---------------------------------------------------------
-# 3. Procurar especificamente CÁLCULO I
-# ---------------------------------------------------------
 
-calculo_I <- matriculas %>%
+# =========================================================
+# 6. CÁLCULO I ESPECIFICAMENTE
+# =========================================================
+
+calculo_I_historico <- tabela_historico %>%
   filter(
     str_detect(
       str_to_upper(
-        str_trim(NOME)
+        str_trim(DISCIPLINA)
       ),
-      "^C[ÁA]LCULO I$|^CALCULO I$"
+      "CALCULO.*I|CÁLCULO.*I"
     )
   )
 
@@ -617,29 +745,36 @@ cat("=========================================================\n")
 
 cat(
   "\nRegistros:",
-  nrow(calculo_I),
+  nrow(calculo_I_historico),
   "\n"
 )
 
 cat(
   "Matrículas únicas:",
   n_distinct(
-    calculo_I$MATRICULA
+    calculo_I_historico$MATRICULA_JOIN
   ),
   "\n"
 )
 
-print(calculo_I)
+print(
+  calculo_I_historico %>%
+    count(
+      DISCIPLINA,
+      sort = TRUE
+    )
+)
 
-# ---------------------------------------------------------
-# 4. Procurar especificamente FMCC I
-# ---------------------------------------------------------
 
-fmcc_I <- matriculas %>%
+# =========================================================
+# 7. FMCC I
+# =========================================================
+
+fmcc_I_historico <- tabela_historico %>%
   filter(
     str_detect(
       str_to_upper(
-        str_trim(NOME)
+        str_trim(DISCIPLINA)
       ),
       "FMCC"
     )
@@ -651,82 +786,166 @@ cat("=========================================================\n")
 
 cat(
   "\nRegistros:",
-  nrow(fmcc_I),
+  nrow(fmcc_I_historico),
   "\n"
 )
 
 cat(
   "Matrículas únicas:",
   n_distinct(
-    fmcc_I$MATRICULA
+    fmcc_I_historico$MATRICULA_JOIN
   ),
   "\n"
 )
 
-print(fmcc_I)
-
-# ---------------------------------------------------------
-# 5. Criar tabela consolidada
-# ---------------------------------------------------------
-
-disciplinas_5_7_5 <- bind_rows(
-  calculo_I %>%
-    mutate(
-      DISCIPLINA_ANALISE = "CALCULO I"
-    ),
-  
-  fmcc_I %>%
-    mutate(
-      DISCIPLINA_ANALISE = "FMCC I"
+print(
+  fmcc_I_historico %>%
+    count(
+      DISCIPLINA,
+      sort = TRUE
     )
-) %>%
-  distinct()
+)
 
-# ---------------------------------------------------------
-# 6. Resumo
-# ---------------------------------------------------------
+
+# =========================================================
+# 8. VERIFICAR DISCIPLINAS DENTRO DA AMOSTRA
+# =========================================================
+
+calculo_amostra_historico <- calculo_I_historico %>%
+  semi_join(
+    matriculas_amostra,
+    by = "MATRICULA_JOIN"
+  )
+
+fmcc_amostra_historico <- fmcc_I_historico %>%
+  semi_join(
+    matriculas_amostra,
+    by = "MATRICULA_JOIN"
+  )
 
 cat("\n=========================================================\n")
-cat("RESUMO FINAL\n")
+cat("DISCIPLINAS DENTRO DA AMOSTRA\n")
+cat("=========================================================\n")
+
+cat(
+  "\nCálculo I - registros:",
+  nrow(calculo_amostra_historico),
+  "\n"
+)
+
+cat(
+  "Cálculo I - alunos:",
+  n_distinct(
+    calculo_amostra_historico$MATRICULA_JOIN
+  ),
+  "\n"
+)
+
+cat(
+  "\nFMCC I - registros:",
+  nrow(fmcc_amostra_historico),
+  "\n"
+)
+
+cat(
+  "FMCC I - alunos:",
+  n_distinct(
+    fmcc_amostra_historico$MATRICULA_JOIN
+  ),
+  "\n"
+)
+
+
+# =========================================================
+# 9. MOSTRAR ALGUNS REGISTROS
+# =========================================================
+
+cat("\n=========================================================\n")
+cat("EXEMPLOS DE CÁLCULO I\n")
 cat("=========================================================\n")
 
 print(
-  disciplinas_5_7_5 %>%
-    count(
-      DISCIPLINA_ANALISE,
-      name = "REGISTROS"
-    )
+  head(
+    calculo_amostra_historico,
+    20
+  )
+)
+
+cat("\n=========================================================\n")
+cat("EXEMPLOS DE FMCC I\n")
+cat("=========================================================\n")
+
+print(
+  head(
+    fmcc_amostra_historico,
+    20
+  )
+)
+
+
+# =========================================================
+# 10. RESULTADO FINAL
+# =========================================================
+
+cat("\n=========================================================\n")
+cat("RESULTADO FINAL - TABELA_HISTORICO\n")
+cat("=========================================================\n")
+
+cat(
+  "\nAmostra:",
+  nrow(amostra),
+  "registros\n"
 )
 
 cat(
-  "\nMatrículas únicas envolvidas:",
+  "Matrículas únicas:",
+  nrow(matriculas_amostra),
+  "\n"
+)
+
+cat(
+  "Matrículas encontradas no histórico:",
+  sum(match_historico$encontrada),
+  "\n"
+)
+
+cat(
+  "Cobertura da matrícula:",
+  round(
+    mean(match_historico$encontrada) * 100,
+    2
+  ),
+  "%\n"
+)
+
+cat(
+  "\nCálculo I - registros na amostra:",
+  nrow(calculo_amostra_historico),
+  "\n"
+)
+
+cat(
+  "Cálculo I - alunos na amostra:",
   n_distinct(
-    disciplinas_5_7_5$MATRICULA
+    calculo_amostra_historico$MATRICULA_JOIN
   ),
   "\n"
 )
 
-# ---------------------------------------------------------
-# 7. Salvar resultado
-# ---------------------------------------------------------
-
-arquivo_saida <- file.path(
-  pasta_dados,
-  "verificacao_calculo_fmcc_matriculas.csv"
-)
-
-write_csv2(
-  disciplinas_5_7_5,
-  arquivo_saida
-)
-
-cat("\n=========================================================\n")
-cat("ARQUIVO GERADO\n")
-cat("=========================================================\n")
-
 cat(
-  "\nArquivo:",
-  arquivo_saida,
+  "\nFMCC I - registros na amostra:",
+  nrow(fmcc_amostra_historico),
   "\n"
 )
 
+cat(
+  "FMCC I - alunos na amostra:",
+  n_distinct(
+    fmcc_amostra_historico$MATRICULA_JOIN
+  ),
+  "\n"
+)
+
+cat("\n=========================================================\n")
+cat("FIM\n")
+cat("=========================================================\n")
