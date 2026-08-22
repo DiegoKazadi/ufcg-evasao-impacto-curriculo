@@ -538,3 +538,62 @@ cat(
 cat("\n=========================================================\n")
 cat("FIM\n")
 cat("=========================================================\n")
+
+
+
+
+# =========================================================
+# LOCALIZAR ARQUIVOS CANDIDATOS
+# =========================================================
+
+projeto <- "C:/Users/Big Data/Documents/Master UFCG/Semestre 2026.1/ufcg-evasao-impacto-curriculo/Dados_Script_Usados"
+
+arquivos_procurar <- c(
+  "historicos de todos os alunos que ingressaram a partir de 2002.tsv",
+  "historicos_todos_alunos_ingressaram_2002.xlsx",
+  "alunosUFCG.csv",
+  "todosAlunosTudo.csv",
+  "historico.csv"
+)
+
+cat("\n=========================================================\n")
+cat("LOCALIZAÇÃO DOS ARQUIVOS\n")
+cat("=========================================================\n")
+
+for (arquivo in arquivos_procurar) {
+  
+  encontrado <- list.files(
+    projeto,
+    pattern = paste0(
+      "^",
+      gsub(
+        "([.|()\\^{}+$*?]|\\[|\\])",
+        "\\\\\\1",
+        arquivo
+      ),
+      "$"
+    ),
+    recursive = TRUE,
+    full.names = TRUE,
+    ignore.case = TRUE
+  )
+  
+  cat("\n---------------------------------------------\n")
+  cat("Arquivo:", arquivo, "\n")
+  
+  if (length(encontrado) == 0) {
+    
+    cat("NÃO ENCONTRADO\n")
+    
+  } else {
+    
+    cat("ENCONTRADO:\n")
+    
+    print(
+      encontrado
+    )
+  }
+}
+
+cat("\n=========================================================\n")
+
