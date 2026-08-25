@@ -85,3 +85,477 @@ print(head(enrollments))
 
 cat("\nEstrutura:\n")
 glimpse(enrollments)
+
+
+# =========================================================
+# 5. VALIDAR REGISTRATION
+# =========================================================
+
+cat("\n=========================================================\n")
+cat("VALIDAÇÃO DA MATRÍCULA - REGISTRATION\n")
+cat("=========================================================\n")
+
+# Quantidade de registros
+cat("\nTotal de registros:", nrow(enrollments), "\n")
+
+# Quantidade de matrículas distintas
+cat(
+  "Matrículas distintas:",
+  n_distinct(enrollments$registration),
+  "\n"
+)
+
+# Quantidade de valores NA
+cat(
+  "Registration NA:",
+  sum(is.na(enrollments$registration)),
+  "\n"
+)
+
+# Distribuição do tamanho da matrícula
+tamanho_registration <- enrollments %>%
+  mutate(
+    tamanho = nchar(str_trim(registration))
+  ) %>%
+  count(tamanho, sort = TRUE)
+
+cat("\nDistribuição do tamanho de registration:\n")
+print(tamanho_registration)
+
+# Verificar especificamente matrículas com 9 dígitos
+registration_9 <- enrollments %>%
+  filter(
+    !is.na(registration),
+    str_detect(str_trim(registration), "^[0-9]{9}$")
+  )
+
+cat(
+  "\nRegistros com registration de exatamente 9 dígitos:",
+  nrow(registration_9),
+  "\n"
+)
+
+cat(
+  "Matrículas distintas com 9 dígitos:",
+  n_distinct(registration_9$registration),
+  "\n"
+)
+
+# Exemplos
+cat("\nPrimeiras matrículas encontradas:\n")
+
+print(
+  registration_9 %>%
+    distinct(registration) %>%
+    head(20)
+)
+
+
+# =========================================================
+# 6. INSPECIONAR A AMOSTRA FINAL
+# =========================================================
+
+cat("\n=========================================================\n")
+cat("AMOSTRA FINAL DA DISSERTAÇÃO\n")
+cat("=========================================================\n")
+
+cat("\nLinhas:", nrow(amostra), "\n")
+cat("Colunas:", ncol(amostra), "\n")
+
+cat("\nNomes das colunas:\n")
+print(names(amostra))
+
+cat("\nPrimeiras linhas:\n")
+print(head(amostra))
+
+cat("\nEstrutura:\n")
+glimpse(amostra)
+
+
+# =========================================================
+# 7. VALIDAR MATRÍCULAS
+# AMOSTRA × ENROLLMENTS
+# =========================================================
+
+cat("\n=========================================================\n")
+cat("VALIDAÇÃO DAS MATRÍCULAS\n")
+cat("AMOSTRA × ENROLLMENTS\n")
+cat("=========================================================\n")
+
+# ---------------------------------------------------------
+# 7.1 Padronizar matrícula da amostra
+# ---------------------------------------------------------
+
+amostra <- amostra %>%
+  mutate(
+    matricula_padronizada = as.character(Matricula)
+  )
+
+# ---------------------------------------------------------
+# 7.2 Padronizar matrícula de enrollments
+# ---------------------------------------------------------
+
+enrollments <- enrollments %>%
+  mutate(
+    registration_padronizada = str_trim(registration)
+  )
+
+# ---------------------------------------------------------
+# 7.3 Quantidades básicas
+# ---------------------------------------------------------
+
+cat(
+  "\nAlunos na amostra:",
+  nrow(amostra),
+  "\n"
+)
+
+cat(
+  "Matrículas distintas na amostra:",
+  n_distinct(amostra$matricula_padronizada),
+  "\n"
+)
+
+cat(
+  "Matrículas distintas em enrollments:",
+  n_distinct(enrollments$registration_padronizada),
+  "\n"
+)
+
+# ---------------------------------------------------------
+# 7.4 Matrículas da amostra encontradas em enrollments
+# ---------------------------------------------------------
+
+matriculas_match <- amostra %>%
+  distinct(matricula_padronizada) %>%
+  inner_join(
+    enrollments %>%
+      distinct(registration_padronizada),
+    by = c(
+      "matricula_padronizada" =
+        "registration_padronizada"
+    )
+  )
+
+cat(
+  "\nMatrículas da amostra encontradas:",
+  nrow(matriculas_match),
+  "\n"
+)
+
+cat(
+  "Percentual encontrado:",
+  round(
+    100 * nrow(matriculas_match) /
+      n_distinct(amostra$matricula_padronizada),
+    2
+  ),
+  "%\n"
+)
+
+# ---------------------------------------------------------
+# 7.5 Matrículas SEM correspondência
+# ---------------------------------------------------------
+
+matriculas_sem_match <- amostra %>%
+  distinct(matricula_padronizada) %>%
+  anti_join(
+    enrollments %>%
+      distinct(registration_padronizada),
+    by = c(
+      "matricula_padronizada" =
+        "registration_padronizada"
+    )
+  )
+
+cat(
+  "\nMatrículas da amostra SEM correspondência:",
+  nrow(matriculas_sem_match),
+  "\n"
+)
+
+cat("\nPrimeiras matrículas sem correspondência:\n")
+
+print(
+  head(
+    matriculas_sem_match,
+    30
+  )
+)
+
+
+# =========================================================
+# 9. INVESTIGAR AS 5 MATRÍCULAS SEM CORRESPONDÊNCIA
+# =========================================================
+
+amostra %>%
+  filter(
+    matricula_padronizada %in%
+      matriculas_sem_match$matricula_padronizada
+  ) %>%
+  select(
+    Matricula,
+    `Periodo de Ingresso`,
+    `Curriculo`,
+    `Curriculo Entrada`,
+    Status,
+    `Tipo de Evasao`,
+    `Periodo de Evasao`
+  ) %>%
+  arrange(Matricula) %>%
+  print()
+
+# =========================================================
+# 10. PROCURAR POSSÍVEIS VARIAÇÕES
+# =========================================================
+
+matriculas_problema <- matriculas_sem_match$matricula_padronizada
+
+for (mat in matriculas_problema) {
+  
+  cat("\n---------------------------------------------\n")
+  cat("Matrícula:", mat, "\n")
+  
+  encontrados <- enrollments %>%
+    filter(
+      str_detect(
+        registration,
+        fixed(mat)
+      )
+    ) %>%
+    distinct(registration)
+  
+  print(encontrados)
+}
+
+
+# =========================================================
+# 11. QUANTIDADE DE REGISTROS DE DISCIPLINAS POR ALUNO
+# =========================================================
+
+disciplinas_por_aluno <- enrollments %>%
+  semi_join(
+    amostra,
+    by = c(
+      "registration_padronizada" =
+        "matricula_padronizada"
+    )
+  ) %>%
+  group_by(registration_padronizada) %>%
+  summarise(
+    qtd_registros = n(),
+    qtd_disciplinas = n_distinct(subjectCode),
+    qtd_periodos = n_distinct(term),
+    .groups = "drop"
+  )
+
+cat("\n=========================================================\n")
+cat("HISTÓRICO ACADÊMICO DOS ALUNOS DA AMOSTRA\n")
+cat("=========================================================\n")
+
+cat(
+  "\nAlunos com registros em enrollments:",
+  nrow(disciplinas_por_aluno),
+  "\n"
+)
+
+cat(
+  "\nResumo dos registros por aluno:\n"
+)
+
+print(
+  summary(
+    disciplinas_por_aluno$qtd_registros
+  )
+)
+
+cat(
+  "\nResumo das disciplinas distintas por aluno:\n"
+)
+
+print(
+  summary(
+    disciplinas_por_aluno$qtd_disciplinas
+  )
+)
+
+# =========================================================
+# 12. INTERVALO TEMPORAL DE ENROLLMENTS
+# =========================================================
+
+cat("\n=========================================================\n")
+cat("INTERVALO TEMPORAL DE ENROLLMENTS\n")
+cat("=========================================================\n")
+
+enrollments %>%
+  summarise(
+    menor_term = min(term, na.rm = TRUE),
+    maior_term = max(term, na.rm = TRUE),
+    termos_distintos = n_distinct(term)
+  ) %>%
+  print()
+
+cat("\nDistribuição dos termos:\n")
+
+enrollments %>%
+  count(term) %>%
+  arrange(term) %>%
+  print(n = 100)
+
+
+# =========================================================
+# 13. TERM × PERÍODO DE INGRESSO
+# =========================================================
+
+historico_amostra <- enrollments %>%
+  inner_join(
+    amostra %>%
+      select(
+        matricula_padronizada,
+        `Periodo de Ingresso`,
+        Curriculo,
+        `Curriculo Entrada`
+      ),
+    by = c(
+      "registration_padronizada" =
+        "matricula_padronizada"
+    )
+  )
+
+cat("\n=========================================================\n")
+cat("HISTÓRICO DOS ALUNOS DA AMOSTRA\n")
+cat("=========================================================\n")
+
+cat(
+  "\nRegistros de enrollments pertencentes à amostra:",
+  nrow(historico_amostra),
+  "\n"
+)
+
+cat(
+  "Alunos encontrados:",
+  n_distinct(
+    historico_amostra$registration_padronizada
+  ),
+  "\n"
+)
+
+# =========================================================
+# 14. PADRONIZAR PERÍODO
+# =========================================================
+
+historico_amostra <- historico_amostra %>%
+  mutate(
+    periodo_ingresso = paste0(
+      substr(
+        as.character(`Periodo de Ingresso`),
+        1,
+        4
+      ),
+      ".",
+      substr(
+        as.character(`Periodo de Ingresso`),
+        5,
+        5
+      )
+    )
+  )
+
+# =========================================================
+# 15. VERIFICAR DISCIPLINAS ANTES DO INGRESSO
+# =========================================================
+
+historico_amostra <- historico_amostra %>%
+  mutate(
+    ano_term = as.numeric(substr(term, 1, 4)),
+    semestre_term = as.numeric(substr(term, 6, 6)),
+    
+    ano_ingresso = as.numeric(
+      substr(periodo_ingresso, 1, 4)
+    ),
+    
+    semestre_ingresso = as.numeric(
+      substr(periodo_ingresso, 6, 6)
+    )
+  )
+
+historico_amostra <- historico_amostra %>%
+  mutate(
+    antes_ingresso =
+      ano_term < ano_ingresso |
+      (
+        ano_term == ano_ingresso &
+          semestre_term < semestre_ingresso
+      )
+  )
+
+cat("\n=========================================================\n")
+cat("DISCIPLINAS ANTES DO INGRESSO\n")
+cat("=========================================================\n")
+
+print(
+  table(
+    historico_amostra$antes_ingresso,
+    useNA = "ifany"
+  )
+)
+
+# =========================================================
+# 16. CARREGAR DISCIPLINAS
+# =========================================================
+
+disciplinas_1999 <- read_csv2(
+  file.path(
+    pasta_dados,
+    "disciplinas_1999.csv"
+  ),
+  show_col_types = FALSE
+)
+
+disciplinas_2017 <- read_csv2(
+  file.path(
+    pasta_dados,
+    "disciplinas_2017.csv"
+  ),
+  show_col_types = FALSE
+)
+
+cat("\n=========================================================\n")
+cat("DISCIPLINAS 1999\n")
+cat("=========================================================\n")
+
+cat(
+  "\nLinhas:",
+  nrow(disciplinas_1999),
+  "\n"
+)
+
+cat(
+  "Colunas:",
+  ncol(disciplinas_1999),
+  "\n"
+)
+
+print(names(disciplinas_1999))
+
+glimpse(disciplinas_1999)
+
+cat("\n=========================================================\n")
+cat("DISCIPLINAS 2017\n")
+cat("=========================================================\n")
+
+cat(
+  "\nLinhas:",
+  nrow(disciplinas_2017),
+  "\n"
+)
+
+cat(
+  "Colunas:",
+  ncol(disciplinas_2017),
+  "\n"
+)
+
+print(names(disciplinas_2017))
+
+glimpse(disciplinas_2017)
