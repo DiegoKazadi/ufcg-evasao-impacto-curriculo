@@ -845,3 +845,1175 @@ calculo_I <- enrollments %>%
     (Curriculo == "1999" & subjectCode == codigo_calculo_I_1999) |
       (Curriculo == "2017" & subjectCode == codigo_calculo_I_2017)
   )
+
+# =========================================================
+# 33. COBERTURA DE CÁLCULO I
+# =========================================================
+
+cobertura_calculo_I <- calculo_I %>%
+  distinct(
+    registration,
+    Curriculo
+  ) %>%
+  count(
+    Curriculo,
+    name = "alunos_calculo_I"
+  ) %>%
+  left_join(
+    amostra %>%
+      filter(Curriculo %in% c("1999", "2017")) %>%
+      count(
+        Curriculo,
+        name = "alunos_amostra"
+      ),
+    by = "Curriculo"
+  ) %>%
+  mutate(
+    percentual_cobertura =
+      100 * alunos_calculo_I / alunos_amostra
+  )
+
+print(cobertura_calculo_I)
+
+
+# =========================================================
+# 34. TRATAMENTO DAS NOTAS
+# =========================================================
+
+calculo_I <- calculo_I %>%
+  mutate(
+    nota = if_else(
+      str_trim(grade) == "-" | is.na(grade),
+      NA_real_,
+      parse_number(
+        grade,
+        locale = locale(decimal_mark = ",")
+      )
+    )
+  )
+
+
+calculo_I %>%
+  group_by(Curriculo) %>%
+  summarise(
+    registros = n(),
+    notas_validas = sum(!is.na(nota)),
+    percentual_notas_validas =
+      100 * notas_validas / registros,
+    media = mean(nota, na.rm = TRUE),
+    mediana = median(nota, na.rm = TRUE),
+    desvio_padrao = sd(nota, na.rm = TRUE),
+    minimo = min(nota, na.rm = TRUE),
+    maximo = max(nota, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  print()
+
+
+# =========================================================
+# 35. TENTATIVAS DE CÁLCULO I
+# =========================================================
+
+tentativas_calculo <- calculo_I %>%
+  count(
+    registration,
+    Curriculo,
+    name = "tentativas_calculo"
+  )
+
+tentativas_calculo %>%
+  count(
+    Curriculo,
+    tentativas_calculo,
+    name = "alunos"
+  ) %>%
+  group_by(Curriculo) %>%
+  mutate(
+    percentual =
+      100 * alunos / sum(alunos)
+  ) %>%
+  ungroup() %>%
+  arrange(
+    Curriculo,
+    tentativas_calculo
+  ) %>%
+  print()
+
+
+# =========================================================
+# 36. SITUAÇÃO ACADÊMICA - CÁLCULO I
+# =========================================================
+
+calculo_I %>%
+  count(
+    Curriculo,
+    status,
+    name = "registros"
+  ) %>%
+  group_by(Curriculo) %>%
+  mutate(
+    percentual =
+      100 * registros / sum(registros)
+  ) %>%
+  ungroup() %>%
+  arrange(
+    Curriculo,
+    desc(registros)
+  ) %>%
+  print()
+
+
+# =========================================================
+# 37. RESULTADO DE CADA ALUNO EM CÁLCULO I
+# =========================================================
+
+resultado_calculo_aluno <- calculo_I %>%
+  arrange(
+    registration,
+    term
+  ) %>%
+  group_by(
+    registration,
+    Curriculo
+  ) %>%
+  summarise(
+    tentativas = n(),
+    
+    teve_aprovacao = any(
+      status == "Aprovado"
+    ),
+    
+    teve_reprovacao = any(
+      status %in% c(
+        "Reprovado",
+        "Reprovado por Falta"
+      )
+    ),
+    
+    teve_dispensa = any(
+      status == "Dispensa"
+    ),
+    
+    nota_maxima = ifelse(
+      all(is.na(nota)),
+      NA_real_,
+      max(nota, na.rm = TRUE)
+    ),
+    
+    media_notas = ifelse(
+      all(is.na(nota)),
+      NA_real_,
+      mean(nota, na.rm = TRUE)
+    ),
+    
+    .groups = "drop"
+  )
+
+resultado_calculo_aluno <- resultado_calculo_aluno %>%
+  mutate(
+    resultado_calculo = case_when(
+      teve_aprovacao ~ "Aprovado",
+      teve_dispensa ~ "Dispensa",
+      teve_reprovacao ~ "Sem aprovação",
+      TRUE ~ "Outro"
+    )
+  )
+
+
+resultado_calculo_aluno %>%
+  count(
+    Curriculo,
+    resultado_calculo
+  ) %>%
+  group_by(Curriculo) %>%
+  mutate(
+    percentual =
+      100 * n / sum(n)
+  ) %>%
+  ungroup() %>%
+  print()
+
+# =========================================================
+# 38. CÁLCULO I × EVASÃO
+# =========================================================
+
+calculo_evasao <- resultado_calculo_aluno %>%
+  left_join(
+    amostra %>%
+      select(
+        Matricula,
+        Curriculo,
+        Status,
+        `Tipo de Evasao`,
+        `Periodo de Evasao`
+      ),
+    by = c(
+      "registration" = "Matricula",
+      "Curriculo" = "Curriculo"
+    )
+  )
+
+calculo_evasao %>%
+  count(
+    Curriculo,
+    resultado_calculo,
+    Status
+  ) %>%
+  group_by(
+    Curriculo,
+    resultado_calculo
+  ) %>%
+  mutate(
+    percentual =
+      100 * n / sum(n)
+  ) %>%
+  ungroup() %>%
+  print()
+
+# =========================================================
+# 39. MÉDIA DE TENTATIVAS - CÁLCULO I
+# =========================================================
+
+tentativas_calculo %>%
+  group_by(Curriculo) %>%
+  summarise(
+    alunos = n(),
+    media_tentativas = mean(tentativas_calculo),
+    mediana_tentativas = median(tentativas_calculo),
+    max_tentativas = max(tentativas_calculo),
+    .groups = "drop"
+  ) %>%
+  print()
+
+
+# =========================================================
+# 40. RESULTADO NA PRIMEIRA TENTATIVA
+# =========================================================
+
+primeira_tentativa_calculo <- calculo_I %>%
+  arrange(
+    registration,
+    term,
+    classId
+  ) %>%
+  group_by(
+    registration,
+    Curriculo
+  ) %>%
+  slice(1) %>%
+  ungroup()
+
+primeira_tentativa_calculo %>%
+  count(
+    Curriculo,
+    status
+  ) %>%
+  group_by(Curriculo) %>%
+  mutate(
+    percentual = 100 * n / sum(n)
+  ) %>%
+  ungroup() %>%
+  print()
+
+primeira_tentativa_calculo <- primeira_tentativa_calculo %>%
+  mutate(
+    resultado_primeira_tentativa = case_when(
+      status == "Aprovado" ~ "Aprovado",
+      status == "Dispensa" ~ "Dispensa",
+      status %in% c(
+        "Reprovado",
+        "Reprovado por Falta"
+      ) ~ "Reprovado",
+      TRUE ~ "Outro"
+    )
+  )
+
+primeira_tentativa_calculo %>%
+  count(
+    Curriculo,
+    resultado_primeira_tentativa
+  ) %>%
+  group_by(Curriculo) %>%
+  mutate(
+    percentual = 100 * n / sum(n)
+  ) %>%
+  ungroup() %>%
+  print()
+
+calculo_evasao <- calculo_evasao %>%
+  mutate(
+    evadiu = if_else(
+      Status == "INATIVO" &
+        `Tipo de Evasao` != "GRADUADO",
+      "Evadido",
+      "Não evadido"
+    )
+  )
+
+
+calculo_evasao %>%
+  count(
+    Curriculo,
+    resultado_calculo,
+    evadiu
+  ) %>%
+  group_by(
+    Curriculo,
+    resultado_calculo
+  ) %>%
+  mutate(
+    percentual =
+      100 * n / sum(n)
+  ) %>%
+  ungroup() %>%
+  print(n = Inf)
+
+
+# =========================================================
+# 42. TESTE QUI-QUADRADO:
+# RESULTADO EM CÁLCULO I × EVASÃO
+# =========================================================
+
+teste_calculo_evasao <- calculo_evasao %>%
+  filter(
+    resultado_calculo %in% c(
+      "Aprovado",
+      "Sem aprovação"
+    )
+  ) %>%
+  count(
+    Curriculo,
+    resultado_calculo,
+    evadiu
+  )
+
+print(teste_calculo_evasao)
+
+# =========================================================
+# 43. QUI-QUADRADO POR CURRÍCULO
+# =========================================================
+
+tabela_1999 <- teste_calculo_evasao %>%
+  filter(Curriculo == "1999") %>%
+  select(
+    resultado_calculo,
+    evadiu,
+    n
+  ) %>%
+  tidyr::pivot_wider(
+    names_from = evadiu,
+    values_from = n,
+    values_fill = 0
+  )
+
+tabela_2017 <- teste_calculo_evasao %>%
+  filter(Curriculo == "2017") %>%
+  select(
+    resultado_calculo,
+    evadiu,
+    n
+  ) %>%
+  tidyr::pivot_wider(
+    names_from = evadiu,
+    values_from = n,
+    values_fill = 0
+  )
+
+print(tabela_1999)
+print(tabela_2017)
+
+
+# =========================================================
+# 44. TESTES
+# =========================================================
+
+matriz_1999 <- as.matrix(
+  tabela_1999[, -1]
+)
+
+rownames(matriz_1999) <- tabela_1999$resultado_calculo
+
+matriz_2017 <- as.matrix(
+  tabela_2017[, -1]
+)
+
+rownames(matriz_2017) <- tabela_2017$resultado_calculo
+
+
+cat("\n=========================================================\n")
+cat("QUI-QUADRADO - CURRÍCULO 1999\n")
+cat("=========================================================\n")
+
+teste_1999 <- chisq.test(matriz_1999)
+
+print(teste_1999)
+
+
+cat("\n=========================================================\n")
+cat("QUI-QUADRADO - CURRÍCULO 2017\n")
+cat("=========================================================\n")
+
+teste_2017 <- chisq.test(matriz_2017)
+
+print(teste_2017)
+
+# =========================================================
+# 45. V DE CRAMÉR
+# =========================================================
+
+calcular_v_cramer <- function(tabela) {
+  
+  teste <- chisq.test(tabela)
+  
+  n <- sum(tabela)
+  
+  r <- nrow(tabela)
+  k <- ncol(tabela)
+  
+  sqrt(
+    as.numeric(teste$statistic) /
+      (n * min(r - 1, k - 1))
+  )
+}
+
+
+v_1999 <- calcular_v_cramer(matriz_1999)
+v_2017 <- calcular_v_cramer(matriz_2017)
+
+cat("\nV de Cramér - 1999:", v_1999, "\n")
+cat("V de Cramér - 2017:", v_2017, "\n")
+
+
+# =========================================================
+# 46. ALUNOS 2017 SEM REGISTRO DE CÁLCULO I
+# =========================================================
+
+alunos_2017_sem_calculo <- amostra %>%
+  filter(
+    Curriculo == "2017"
+  ) %>%
+  anti_join(
+    calculo_I %>%
+      filter(
+        Curriculo == "2017"
+      ) %>%
+      distinct(registration),
+    by = c(
+      "Matricula" = "registration"
+    )
+  )
+
+cat("\n=========================================================\n")
+cat("ALUNOS 2017 SEM REGISTRO DE CÁLCULO I\n")
+cat("=========================================================\n")
+
+cat("\nQuantidade:", nrow(alunos_2017_sem_calculo), "\n")
+
+alunos_2017_sem_calculo %>%
+  count(
+    `Periodo de Ingresso`
+  ) %>%
+  arrange(
+    `Periodo de Ingresso`
+  ) %>%
+  print(n = Inf)
+
+
+# =========================================================
+# 47. SITUAÇÃO DOS ALUNOS 2017 SEM CÁLCULO I
+# =========================================================
+
+alunos_2017_sem_calculo %>%
+  count(
+    `Periodo de Ingresso`,
+    Status,
+    `Tipo de Evasao`
+  ) %>%
+  arrange(
+    `Periodo de Ingresso`
+  ) %>%
+  print(n = Inf)
+
+# =========================================================
+# 48. HISTÓRICO DOS ALUNOS 2017 SEM CÁLCULO I 1109126
+# =========================================================
+
+historico_2017_sem_calculo <- enrollments %>%
+  inner_join(
+    alunos_2017_sem_calculo %>%
+      select(
+        Matricula,
+        `Periodo de Ingresso`,
+        Status,
+        `Tipo de Evasao`
+      ),
+    by = c(
+      "registration" = "Matricula"
+    )
+  )
+
+cat("\n=========================================================\n")
+cat("HISTÓRICO DOS ALUNOS 2017 SEM 1109126\n")
+cat("=========================================================\n")
+
+cat("\nRegistros:", nrow(historico_2017_sem_calculo), "\n")
+
+cat("\nDisciplinas mais frequentes:\n")
+
+historico_2017_sem_calculo %>%
+  count(
+    subjectCode,
+    sort = TRUE
+  ) %>%
+  print(n = 50)
+
+
+# =========================================================
+# 49. POSSÍVEIS CÓDIGOS ALTERNATIVOS DE CÁLCULO
+# =========================================================
+
+historico_2017_sem_calculo %>%
+  filter(
+    subjectCode %in% c(
+      "1109103",
+      "1109050",
+      "1109126",
+      "1109131",
+      "1109105",
+      "1109128"
+    )
+  ) %>%
+  count(
+    subjectCode,
+    sort = TRUE
+  ) %>%
+  print()
+
+# =========================================================
+# 50. TODOS OS CÓDIGOS DE CÁLCULO NO HISTÓRICO
+# =========================================================
+
+codigos_calculo <- disciplinas_2017 %>%
+  filter(
+    str_detect(
+      str_to_upper(NOME_DISCIPLINA),
+      "CALC|C.LCULO|DIFERENCIAL|INTEGRAL"
+    )
+  ) %>%
+  pull(CODIGO_DISCIPLINA) %>%
+  as.character()
+
+cat("\nCódigos encontrados no currículo 2017:\n")
+print(codigos_calculo)
+
+cat("\nOcorrências desses códigos nos 216 alunos:\n")
+
+historico_2017_sem_calculo %>%
+  filter(
+    subjectCode %in% codigos_calculo
+  ) %>%
+  count(
+    subjectCode,
+    sort = TRUE
+  ) %>%
+  print()
+
+# =========================================================
+# 51. CURRÍCULO 2017 POR PERÍODO DE INGRESSO
+# =========================================================
+
+amostra %>%
+  filter(
+    Curriculo == "2017"
+  ) %>%
+  count(
+    `Periodo de Ingresso`
+  ) %>%
+  arrange(
+    `Periodo de Ingresso`
+  ) %>%
+  print(n = Inf)
+
+
+# =========================================================
+# 52. CURRÍCULO × PERÍODO DE INGRESSO
+# =========================================================
+
+amostra %>%
+  count(
+    Curriculo,
+    `Periodo de Ingresso`
+  ) %>%
+  arrange(
+    Curriculo,
+    `Periodo de Ingresso`
+  ) %>%
+  print(n = Inf)
+
+# =========================================================
+# 53. MATRIZ DE INGRESSO × CURRÍCULO
+# =========================================================
+
+matriz_ingresso_curriculo <- amostra %>%
+  count(
+    `Periodo de Ingresso`,
+    Curriculo
+  ) %>%
+  tidyr::pivot_wider(
+    names_from = Curriculo,
+    values_from = n,
+    values_fill = 0
+  ) %>%
+  arrange(
+    `Periodo de Ingresso`
+  )
+
+print(
+  matriz_ingresso_curriculo,
+  n = Inf
+)
+
+# =========================================================
+# 54. ALUNOS QUE INGRESSARAM ANTES DE 2018
+#     MAS ESTÃO CLASSIFICADOS NO CURRÍCULO 2017
+# =========================================================
+
+alunos_transicao_2017 <- amostra %>%
+  filter(
+    Curriculo == "2017",
+    `Periodo de Ingresso` < 20181
+  ) %>%
+  arrange(
+    `Periodo de Ingresso`,
+    Matricula
+  )
+
+cat("\n=========================================================\n")
+cat("ALUNOS DE INGRESSO ANTERIOR A 2018 CLASSIFICADOS NO 2017\n")
+cat("=========================================================\n")
+
+cat("\nQuantidade:", nrow(alunos_transicao_2017), "\n")
+
+alunos_transicao_2017 %>%
+  count(
+    `Periodo de Ingresso`
+  ) %>%
+  print(n = Inf)
+
+
+# =========================================================
+# 55. ALUNOS 2017 SEM 1109126 QUE CURSARAM 1109103
+# =========================================================
+
+historico_1109103_transicao <- historico_2017_sem_calculo %>%
+  filter(
+    subjectCode == "1109103"
+  ) %>%
+  select(
+    registration,
+    `Periodo de Ingresso`,
+    term,
+    subjectCode,
+    grade,
+    status,
+    `Tipo de Evasao`
+  ) %>%
+  arrange(
+    `Periodo de Ingresso`,
+    registration,
+    term
+  )
+
+cat("\n=========================================================\n")
+cat("1109103 ENTRE ALUNOS 2017 SEM 1109126\n")
+cat("=========================================================\n")
+
+cat(
+  "\nAlunos distintos:",
+  n_distinct(historico_1109103_transicao$registration),
+  "\n"
+)
+
+historico_1109103_transicao %>%
+  count(
+    `Periodo de Ingresso`
+  ) %>%
+  print(n = Inf)
+
+historico_1109103_transicao %>%
+  count(
+    `Periodo de Ingresso`,
+    term,
+    status
+  ) %>%
+  arrange(
+    `Periodo de Ingresso`,
+    term
+  ) %>%
+  print(n = Inf)
+
+
+# =========================================================
+# 56. DEFINIÇÃO DA POPULAÇÃO COMPARÁVEL
+# =========================================================
+
+amostra_comparavel <- amostra %>%
+  filter(
+    (Curriculo == "1999" &
+       `Periodo de Ingresso` >= 20111 &
+       `Periodo de Ingresso` <= 20152) |
+      
+      (Curriculo == "2017" &
+         `Periodo de Ingresso` >= 20181 &
+         `Periodo de Ingresso` <= 20222)
+  )
+
+cat("\n=========================================================\n")
+cat("POPULAÇÃO COMPARÁVEL - CURRÍCULOS 1999 × 2017\n")
+cat("=========================================================\n")
+
+amostra_comparavel %>%
+  count(Curriculo) %>%
+  print()
+
+# =========================================================
+# 57. CASOS DE TRANSIÇÃO / FORA DA JANELA COMPARÁVEL
+# =========================================================
+
+casos_transicao <- amostra %>%
+  anti_join(
+    amostra_comparavel %>%
+      select(Matricula),
+    by = "Matricula"
+  )
+
+cat("\n=========================================================\n")
+cat("CASOS FORA DA JANELA COMPARÁVEL\n")
+cat("=========================================================\n")
+
+casos_transicao %>%
+  count(
+    Curriculo,
+    `Periodo de Ingresso`
+  ) %>%
+  arrange(
+    Curriculo,
+    `Periodo de Ingresso`
+  ) %>%
+  print(n = Inf)
+
+
+# =========================================================
+# 58. ALUNOS 2017 DA JANELA COMPARÁVEL SEM CÁLCULO I
+# =========================================================
+
+calculo_I_2017_comparavel <- enrollments %>%
+  inner_join(
+    amostra_comparavel %>%
+      filter(Curriculo == "2017") %>%
+      select(
+        Matricula,
+        `Periodo de Ingresso`,
+        Curriculo,
+        Status,
+        `Tipo de Evasao`
+      ),
+    by = c("registration" = "Matricula")
+  ) %>%
+  filter(
+    subjectCode == codigo_calculo_I_2017
+  ) %>%
+  distinct(
+    registration
+  )
+
+alunos_2017_comparavel_sem_calculo <- amostra_comparavel %>%
+  filter(
+    Curriculo == "2017"
+  ) %>%
+  anti_join(
+    calculo_I_2017_comparavel,
+    by = c(
+      "Matricula" = "registration"
+    )
+  )
+
+cat("\n=========================================================\n")
+cat("2017 COMPARÁVEL SEM CÁLCULO I\n")
+cat("=========================================================\n")
+
+cat(
+  "\nQuantidade:",
+  nrow(alunos_2017_comparavel_sem_calculo),
+  "\n"
+)
+
+alunos_2017_comparavel_sem_calculo %>%
+  count(
+    `Periodo de Ingresso`
+  ) %>%
+  arrange(
+    `Periodo de Ingresso`
+  ) %>%
+  print(n = Inf)
+
+
+# =========================================================
+# 59. FUNDAMENTOS DE MATEMÁTICA PARA CIÊNCIA DA COMPUTAÇÃO
+# =========================================================
+
+codigo_fmcc_I_2017 <- "1411311"
+codigo_fmcc_II_2017 <- "1411312"
+
+fmcc <- enrollments %>%
+  inner_join(
+    amostra_comparavel %>%
+      filter(Curriculo == "2017") %>%
+      select(
+        Matricula,
+        Curriculo,
+        `Periodo de Ingresso`,
+        Status,
+        `Tipo de Evasao`,
+        `Periodo de Evasao`
+      ),
+    by = c("registration" = "Matricula")
+  ) %>%
+  filter(
+    subjectCode %in% c(
+      codigo_fmcc_I_2017,
+      codigo_fmcc_II_2017
+    )
+  ) %>%
+  mutate(
+    disciplina = case_when(
+      subjectCode == codigo_fmcc_I_2017 ~ "FMCC I",
+      subjectCode == codigo_fmcc_II_2017 ~ "FMCC II",
+      TRUE ~ "Outro"
+    )
+  )
+
+# =========================================================
+# 60. COBERTURA DE FMCC
+# =========================================================
+
+fmcc %>%
+  distinct(
+    registration,
+    Curriculo,
+    disciplina
+  ) %>%
+  count(
+    disciplina,
+    name = "alunos"
+  ) %>%
+  print()
+
+
+# =========================================================
+# AUDITORIA DOS CÓDIGOS DE FMCC
+# =========================================================
+
+fmcc %>%
+  count(
+    subjectCode,
+    disciplina,
+    sort = TRUE
+  ) %>%
+  print(n = Inf)
+
+
+enrollments %>%
+  filter(
+    subjectCode %in% c(
+      "1411311",
+      "1411312"
+    )
+  ) %>%
+  count(
+    subjectCode,
+    sort = TRUE
+  )
+
+
+enrollments %>%
+  inner_join(
+    amostra_comparavel %>%
+      filter(Curriculo == "2017") %>%
+      select(Matricula, Curriculo),
+    by = c("registration" = "Matricula")
+  ) %>%
+  filter(
+    subjectCode %in% c(
+      "1411311",
+      "1411312"
+    )
+  ) %>%
+  count(
+    subjectCode,
+    name = "registros"
+  )
+
+
+# Alunos que aparecem nas duas disciplinas
+
+fmcc %>%
+  distinct(
+    registration,
+    disciplina
+  ) %>%
+  count(
+    registration
+  ) %>%
+  count(
+    n,
+    name = "alunos"
+  ) %>%
+  arrange(n)
+
+disciplinas_2017 %>%
+  filter(
+    CODIGO_DISCIPLINA %in% c(
+      1411311,
+      1411312
+    )
+  ) %>%
+  select(
+    CODIGO_CURRICULAR,
+    CODIGO_DISCIPLINA,
+    NOME_DISCIPLINA,
+    CREDITO_DISCIPLINA,
+    HORAS_DISCIPLINA,
+    TIPO,
+    SEMESTRE_IDEAL
+  ) %>%
+  print()
+
+# ==
+
+
+fmcc %>%
+  distinct(
+    registration,
+    disciplina
+  ) %>%
+  group_by(registration) %>%
+  summarise(
+    fmcc_I = any(disciplina == "FMCC I"),
+    fmcc_II = any(disciplina == "FMCC II"),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    trajeto = case_when(
+      fmcc_I & fmcc_II ~ "FMCC I + FMCC II",
+      fmcc_I & !fmcc_II ~ "Somente FMCC I",
+      !fmcc_I & fmcc_II ~ "Somente FMCC II",
+      TRUE ~ "Nenhuma"
+    )
+  ) %>%
+  count(trajeto)
+
+# =========================================================
+# 61. SITUAÇÃO ACADÊMICA - FMCC
+# =========================================================
+
+fmcc %>%
+  count(
+    disciplina,
+    status
+  ) %>%
+  group_by(disciplina) %>%
+  mutate(
+    percentual = 100 * n / sum(n)
+  ) %>%
+  ungroup() %>%
+  arrange(
+    disciplina,
+    desc(n)
+  ) %>%
+  print(n = Inf)
+
+# =========================================================
+# 62. TENTATIVAS POR DISCIPLINA
+# =========================================================
+
+tentativas_fmcc <- fmcc %>%
+  count(
+    registration,
+    Curriculo,
+    disciplina,
+    name = "tentativas"
+  )
+
+tentativas_fmcc %>%
+  count(
+    disciplina,
+    tentativas,
+    name = "alunos"
+  ) %>%
+  group_by(disciplina) %>%
+  mutate(
+    percentual = 100 * alunos / sum(alunos)
+  ) %>%
+  ungroup() %>%
+  arrange(
+    disciplina,
+    tentativas
+  ) %>%
+  print(n = Inf)
+
+
+# =========================================================
+# 62. TENTATIVAS POR DISCIPLINA
+# =========================================================
+
+tentativas_fmcc <- fmcc %>%
+  count(
+    registration,
+    Curriculo,
+    disciplina,
+    name = "tentativas"
+  )
+
+tentativas_fmcc %>%
+  count(
+    disciplina,
+    tentativas,
+    name = "alunos"
+  ) %>%
+  group_by(disciplina) %>%
+  mutate(
+    percentual = 100 * alunos / sum(alunos)
+  ) %>%
+  ungroup() %>%
+  arrange(
+    disciplina,
+    tentativas
+  ) %>%
+  print(n = Inf)
+
+
+tentativas_fmcc %>%
+  group_by(disciplina) %>%
+  summarise(
+    alunos = n(),
+    media_tentativas = mean(tentativas),
+    mediana_tentativas = median(tentativas),
+    max_tentativas = max(tentativas),
+    .groups = "drop"
+  ) %>%
+  print()
+
+
+# =========================================================
+# 63. NOTAS - FMCC
+# =========================================================
+
+fmcc <- fmcc %>%
+  mutate(
+    nota = if_else(
+      str_trim(grade) == "-" | is.na(grade),
+      NA_real_,
+      parse_number(
+        grade,
+        locale = locale(decimal_mark = ",")
+      )
+    )
+  )
+
+fmcc %>%
+  group_by(disciplina) %>%
+  summarise(
+    registros = n(),
+    notas_validas = sum(!is.na(nota)),
+    percentual_notas_validas =
+      100 * notas_validas / registros,
+    media = mean(nota, na.rm = TRUE),
+    mediana = median(nota, na.rm = TRUE),
+    desvio_padrao = sd(nota, na.rm = TRUE),
+    minimo = min(nota, na.rm = TRUE),
+    maximo = max(nota, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  print()
+
+# =========================================================
+# 64. ALUNOS COM FMCC I + FMCC II
+# =========================================================
+
+alunos_fmcc_completo <- fmcc %>%
+  distinct(
+    registration,
+    disciplina
+  ) %>%
+  group_by(registration) %>%
+  summarise(
+    tem_fmcc_I = any(disciplina == "FMCC I"),
+    tem_fmcc_II = any(disciplina == "FMCC II"),
+    .groups = "drop"
+  ) %>%
+  filter(
+    tem_fmcc_I,
+    tem_fmcc_II
+  )
+
+cat(
+  "\nAlunos com FMCC I + FMCC II:",
+  nrow(alunos_fmcc_completo),
+  "\n"
+)
+
+
+# =========================================================
+# 64. ALUNOS COM FMCC I + FMCC II
+# =========================================================
+
+alunos_fmcc_completo <- fmcc %>%
+  distinct(
+    registration,
+    disciplina
+  ) %>%
+  group_by(registration) %>%
+  summarise(
+    tem_fmcc_I = any(disciplina == "FMCC I"),
+    tem_fmcc_II = any(disciplina == "FMCC II"),
+    .groups = "drop"
+  ) %>%
+  filter(
+    tem_fmcc_I,
+    tem_fmcc_II
+  )
+
+cat(
+  "\nAlunos com FMCC I + FMCC II:",
+  nrow(alunos_fmcc_completo),
+  "\n"
+)
+
+
+# =========================================================
+# 65. TRAJETÓRIA FMCC → CÁLCULO I
+# =========================================================
+
+calculo_I_2017 <- enrollments %>%
+  inner_join(
+    amostra_comparavel %>%
+      filter(Curriculo == "2017") %>%
+      select(
+        Matricula,
+        Curriculo,
+        Status,
+        `Tipo de Evasao`
+      ),
+    by = c("registration" = "Matricula")
+  ) %>%
+  filter(
+    subjectCode == codigo_calculo_I_2017
+  )
+
+trajetoria_fmcc_calculo <- alunos_fmcc_completo %>%
+  inner_join(
+    calculo_I_2017,
+    by = "registration"
+  )
+
