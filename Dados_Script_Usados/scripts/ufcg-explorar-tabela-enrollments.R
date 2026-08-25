@@ -559,3 +559,197 @@ cat(
 print(names(disciplinas_2017))
 
 glimpse(disciplinas_2017)
+
+
+# =========================================================
+# 17. INVESTIGAR TERM ANTERIOR AO INGRESSO
+# =========================================================
+
+cat("\n=========================================================\n")
+cat("REGISTROS COM TERM ANTERIOR AO INGRESSO\n")
+cat("=========================================================\n")
+
+antes_ingresso <- historico_amostra %>%
+  filter(antes_ingresso == TRUE) %>%
+  select(
+    registration_padronizada,
+    `Periodo de Ingresso`,
+    periodo_ingresso,
+    term,
+    subjectCode,
+    classId,
+    credits,
+    grade,
+    status,
+    Curriculo,
+    `Curriculo Entrada`
+  ) %>%
+  arrange(
+    registration_padronizada,
+    term
+  )
+
+cat(
+  "\nTotal de registros:",
+  nrow(antes_ingresso),
+  "\n"
+)
+
+cat(
+  "Alunos distintos:",
+  n_distinct(
+    antes_ingresso$registration_padronizada
+  ),
+  "\n"
+)
+
+print(
+  head(
+    antes_ingresso,
+    50
+  )
+)
+
+# Quantidade de registros anteriores ao ingresso por aluno
+
+antes_ingresso %>%
+  count(
+    registration_padronizada,
+    `Periodo de Ingresso`,
+    Curriculo,
+    sort = TRUE
+  ) %>%
+  print(n = 50)
+
+
+# =========================================================
+# 18. TERM FORA DO PADRÃO .1 / .2
+# =========================================================
+
+enrollments %>%
+  filter(
+    !str_detect(
+      term,
+      "^[0-9]{4}\\.[12]$"
+    )
+  ) %>%
+  count(term, sort = TRUE) %>%
+  print()
+
+# =========================================================
+# 19. INVESTIGAR DUPLICIDADE DOS CÓDIGOS - CURRÍCULO 1999
+# =========================================================
+
+cat("\n=========================================================\n")
+cat("CÓDIGOS DE DISCIPLINA - CURRÍCULO 1999\n")
+cat("=========================================================\n")
+
+disciplinas_1999 %>%
+  select(
+    CODIGO_DISCIPLINA...3,
+    CODIGO_DISCIPLINA...5
+  ) %>%
+  mutate(
+    codigo_3 = as.character(CODIGO_DISCIPLINA...3),
+    codigo_5 = as.character(CODIGO_DISCIPLINA...5),
+    iguais = codigo_3 == codigo_5
+  ) %>%
+  count(iguais, useNA = TRUE) %>%
+  print()
+
+
+# =========================================================
+# 20. CLASSIFICAR O TIPO DE RELAÇÃO ENTRE TERM E INGRESSO
+# =========================================================
+
+historico_amostra <- historico_amostra %>%
+  mutate(
+    relacao_term_ingresso = case_when(
+      
+      str_detect(term, "\\.0$") ~
+        "TERM_ESPECIAL_0",
+      
+      antes_ingresso ~
+        "ANTES_DO_INGRESSO",
+      
+      TRUE ~
+        "IGUAL_OU_APOS_INGRESSO"
+    )
+  )
+
+cat("\n=========================================================\n")
+cat("RELAÇÃO ENTRE TERM E PERÍODO DE INGRESSO\n")
+cat("=========================================================\n")
+
+print(
+  table(
+    historico_amostra$relacao_term_ingresso,
+    useNA = "ifany"
+  )
+)
+
+# =========================================================
+# 20. INVESTIGAR OS 17 CASOS REALMENTE ANTERIORES
+# =========================================================
+
+historico_amostra %>%
+  filter(
+    antes_ingresso == TRUE,
+    !str_detect(term, "\\.0$")
+  ) %>%
+  select(
+    registration_padronizada,
+    `Periodo de Ingresso`,
+    periodo_ingresso,
+    term,
+    subjectCode,
+    classId,
+    credits,
+    grade,
+    status,
+    Curriculo,
+    `Curriculo Entrada`
+  ) %>%
+  arrange(
+    registration_padronizada,
+    term
+  ) %>%
+  print(n = 50)
+
+# =========================================================
+# 21. COMPARAR OS DOIS CÓDIGOS - CURRÍCULO 1999
+# =========================================================
+
+disciplinas_1999 %>%
+  select(
+    CODIGO_CURSO,
+    CODIGO_CURRICULAR,
+    CODIGO_DISCIPLINA...3,
+    NOME_DISCIPLINA,
+    CODIGO_DISCIPLINA...5,
+    HORAS_DISCIPLIN,
+    TIPO,
+    SEMESTRE_IDEAL
+  ) %>%
+  mutate(
+    codigo_3 = as.character(CODIGO_DISCIPLINA...3),
+    codigo_5 = as.character(CODIGO_DISCIPLINA...5)
+  ) %>%
+  filter(
+    !is.na(codigo_3) | !is.na(codigo_5)
+  ) %>%
+  head(50) %>%
+  print(n = 50)
+
+
+# =========================================================
+# 22. QUANTIDADE DE NA NOS DOIS CÓDIGOS
+# =========================================================
+
+cat("\nNA em CODIGO_DISCIPLINA...3:",
+    sum(is.na(disciplinas_1999$CODIGO_DISCIPLINA...3)),
+    "\n")
+
+cat("NA em CODIGO_DISCIPLINA...5:",
+    sum(is.na(disciplinas_1999$CODIGO_DISCIPLINA...5)),
+    "\n")
