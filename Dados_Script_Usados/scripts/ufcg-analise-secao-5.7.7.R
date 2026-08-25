@@ -1990,30 +1990,479 @@ cat(
   "\n"
 )
 
+# =========================================================
+# 65. TRAJETÓRIA FMCC I + FMCC II → CÁLCULO I
+#     CURRÍCULO 2017
+# =========================================================
 
-# =========================================================
-# 65. TRAJETÓRIA FMCC → CÁLCULO I
-# =========================================================
+# ---------------------------------------------------------
+# 65.1. CÁLCULO I - CURRÍCULO 2017
+# ---------------------------------------------------------
 
 calculo_I_2017 <- enrollments %>%
   inner_join(
     amostra_comparavel %>%
-      filter(Curriculo == "2017") %>%
+      filter(
+        Curriculo == "2017"
+      ) %>%
       select(
         Matricula,
         Curriculo,
         Status,
-        `Tipo de Evasao`
+        `Tipo de Evasao`,
+        `Periodo de Evasao`
       ),
-    by = c("registration" = "Matricula")
+    by = c(
+      "registration" = "Matricula"
+    )
   ) %>%
   filter(
     subjectCode == codigo_calculo_I_2017
+  ) %>%
+  mutate(
+    nota = if_else(
+      str_trim(grade) == "-" | is.na(grade),
+      NA_real_,
+      parse_number(
+        grade,
+        locale = locale(decimal_mark = ",")
+      )
+    )
   )
 
+
+# ---------------------------------------------------------
+# 65.2. RESULTADO DE CÁLCULO I POR ALUNO
+# ---------------------------------------------------------
+
+resultado_calculo_2017 <- calculo_I_2017 %>%
+  arrange(
+    registration,
+    term,
+    classId
+  ) %>%
+  group_by(
+    registration
+  ) %>%
+  summarise(
+    tentativas_calculo = n(),
+    
+    teve_aprovacao = any(
+      status == "Aprovado"
+    ),
+    
+    teve_reprovacao = any(
+      status %in% c(
+        "Reprovado",
+        "Reprovado por Falta"
+      )
+    ),
+    
+    teve_dispensa = any(
+      status == "Dispensa"
+    ),
+    
+    nota_maxima = ifelse(
+      all(is.na(nota)),
+      NA_real_,
+      max(nota, na.rm = TRUE)
+    ),
+    
+    media_notas = ifelse(
+      all(is.na(nota)),
+      NA_real_,
+      mean(nota, na.rm = TRUE)
+    ),
+    
+    .groups = "drop"
+  ) %>%
+  mutate(
+    resultado_calculo = case_when(
+      teve_aprovacao ~ "Aprovado",
+      teve_dispensa ~ "Dispensa",
+      teve_reprovacao ~ "Sem aprovação",
+      TRUE ~ "Outro"
+    )
+  )
+
+
+# ---------------------------------------------------------
+# 65.3. TRAJETÓRIA COMPLETA
+#     FMCC I + FMCC II → CÁLCULO I
+# ---------------------------------------------------------
+
 trajetoria_fmcc_calculo <- alunos_fmcc_completo %>%
-  inner_join(
-    calculo_I_2017,
+  left_join(
+    resultado_calculo_2017,
     by = "registration"
   )
 
+
+# ---------------------------------------------------------
+# 65.4. RESULTADO DE CÁLCULO I
+#     ENTRE OS ALUNOS QUE FIZERAM FMCC I + II
+# ---------------------------------------------------------
+
+cat("\n=========================================================\n")
+cat("RESULTADO DE CÁLCULO I ENTRE ALUNOS COM FMCC I + FMCC II\n")
+cat("=========================================================\n")
+
+resultado_trajetoria <- trajetoria_fmcc_calculo %>%
+  count(
+    resultado_calculo
+  ) %>%
+  mutate(
+    percentual = 100 * n / sum(n)
+  )
+
+print(
+  resultado_trajetoria
+)
+
+
+# =========================================================
+# 65.5. COBERTURA DE CÁLCULO I NA TRAJETÓRIA FMCC
+# =========================================================
+
+trajetoria_fmcc_calculo %>%
+  mutate(
+    cursou_calculo_I = !is.na(resultado_calculo)
+  ) %>%
+  count(
+    cursou_calculo_I
+  ) %>%
+  mutate(
+    percentual = 100 * n / sum(n)
+  ) %>%
+  print()
+
+
+# =========================================================
+# 65.6. TRAJETÓRIA FMCC → CÁLCULO I
+# =========================================================
+
+trajetoria_fmcc_calculo %>%
+  mutate(
+    cursou_calculo_I = !is.na(resultado_calculo)
+  ) %>%
+  count(
+    cursou_calculo_I,
+    resultado_calculo
+  ) %>%
+  print()
+
+# Agora eu faria o cruzamento que realmente interessa
+
+# =========================================================
+# 66. RESULTADO POR ALUNO - FMCC
+# =========================================================
+
+resultado_fmcc_aluno <- fmcc %>%
+  arrange(
+    registration,
+    disciplina,
+    term,
+    classId
+  ) %>%
+  group_by(
+    registration,
+    disciplina
+  ) %>%
+  summarise(
+    tentativas = n(),
+    
+    teve_aprovacao = any(
+      status == "Aprovado"
+    ),
+    
+    teve_reprovacao = any(
+      status %in% c(
+        "Reprovado",
+        "Reprovado por Falta"
+      )
+    ),
+    
+    teve_dispensa = any(
+      status == "Dispensa"
+    ),
+    
+    .groups = "drop"
+  ) %>%
+  mutate(
+    resultado_fmcc = case_when(
+      teve_aprovacao ~ "Aprovado",
+      teve_dispensa ~ "Dispensa",
+      teve_reprovacao ~ "Sem aprovação",
+      TRUE ~ "Outro"
+    )
+  )
+
+# =========================================================
+# 67. TRAJETÓRIA FMCC I + FMCC II POR ALUNO
+# =========================================================
+
+trajetoria_fmcc <- resultado_fmcc_aluno %>%
+  mutate(
+    disciplina_codigo = case_when(
+      disciplina == "FMCC I"  ~ "FMCC_I",
+      disciplina == "FMCC II" ~ "FMCC_II",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  select(
+    registration,
+    disciplina_codigo,
+    resultado_fmcc,
+    tentativas
+  ) %>%
+  tidyr::pivot_wider(
+    names_from = disciplina_codigo,
+    values_from = c(
+      resultado_fmcc,
+      tentativas
+    ),
+    names_glue = "{.value}_{disciplina_codigo}"
+  )
+
+cat("\n=========================================================\n")
+cat("COLUNAS DA TRAJETÓRIA FMCC\n")
+cat("=========================================================\n")
+
+print(names(trajetoria_fmcc))
+
+
+# =========================================================
+# 68. FMCC I + FMCC II → CÁLCULO I
+# =========================================================
+
+trajetoria_completa <- trajetoria_fmcc %>%
+  inner_join(
+    resultado_calculo_2017,
+    by = "registration"
+  )
+
+cat("\n=========================================================\n")
+cat("TRAJETÓRIA COMPLETA\n")
+cat("=========================================================\n")
+
+print(
+  trajetoria_completa %>%
+    select(
+      registration,
+      resultado_fmcc_FMCC_I,
+      resultado_fmcc_FMCC_II,
+      tentativas_FMCC_I,
+      tentativas_FMCC_II,
+      resultado_calculo,
+      tentativas_calculo
+    ) %>%
+    head(20)
+)
+
+# =========================================================
+# 69. TRAJETÓRIA FMCC I + FMCC II → CÁLCULO I
+# =========================================================
+
+trajetoria_completa %>%
+  count(
+    resultado_fmcc_FMCC_I,
+    resultado_fmcc_FMCC_II,
+    resultado_calculo
+  ) %>%
+  arrange(
+    resultado_fmcc_FMCC_I,
+    resultado_fmcc_FMCC_II,
+    resultado_calculo
+  ) %>%
+  print(n = Inf)
+
+
+# =========================================================
+# 70. DESEMPENHO EM CÁLCULO I SEGUNDO A SITUAÇÃO EM FMCC II
+# =========================================================
+
+analise_fmcc_calculo <- trajetoria_completa %>%
+  filter(
+    !is.na(resultado_calculo)
+  ) %>%
+  mutate(
+    desempenho_calculo = case_when(
+      resultado_calculo %in% c(
+        "Aprovado",
+        "Dispensa"
+      ) ~ "Sucesso",
+      
+      resultado_calculo == "Sem aprovação" ~
+        "Sem sucesso",
+      
+      TRUE ~ "Outro"
+    )
+  )
+
+analise_fmcc_calculo %>%
+  count(
+    resultado_fmcc_FMCC_II,
+    desempenho_calculo
+  ) %>%
+  group_by(
+    resultado_fmcc_FMCC_II
+  ) %>%
+  mutate(
+    percentual = 100 * n / sum(n)
+  ) %>%
+  ungroup() %>%
+  print(n = Inf)
+
+
+analise_fmcc_calculo %>%
+  count(
+    resultado_fmcc_FMCC_I,
+    desempenho_calculo
+  ) %>%
+  group_by(
+    resultado_fmcc_FMCC_I
+  ) %>%
+  mutate(
+    percentual = 100 * n / sum(n)
+  ) %>%
+  ungroup() %>%
+  print(n = Inf)
+
+# =========================================================
+# 71. ASSOCIAÇÃO ENTRE FMCC II E CÁLCULO I
+# =========================================================
+
+tabela_fmccII_calculo <- analise_fmcc_calculo %>%
+  filter(
+    resultado_fmcc_FMCC_II %in% c(
+      "Aprovado",
+      "Dispensa",
+      "Sem aprovação"
+    ),
+    desempenho_calculo %in% c(
+      "Sucesso",
+      "Sem sucesso"
+    )
+  ) %>%
+  mutate(
+    resultado_fmccII_binario = case_when(
+      resultado_fmcc_FMCC_II %in% c(
+        "Aprovado",
+        "Dispensa"
+      ) ~ "Sucesso",
+      resultado_fmcc_FMCC_II == "Sem aprovação" ~
+        "Sem sucesso"
+    )
+  ) %>%
+  count(
+    resultado_fmccII_binario,
+    desempenho_calculo
+  ) %>%
+  tidyr::pivot_wider(
+    names_from = desempenho_calculo,
+    values_from = n,
+    values_fill = 0
+  )
+
+print(tabela_fmccII_calculo)
+
+
+matriz_fmccII <- tabela_fmccII_calculo %>%
+  select(
+    Sucesso,
+    `Sem sucesso`
+  ) %>%
+  as.matrix()
+
+rownames(matriz_fmccII) <-
+  tabela_fmccII_calculo$resultado_fmccII_binario
+
+print(matriz_fmccII)
+
+teste_fmccII <- chisq.test(
+  matriz_fmccII
+)
+
+print(teste_fmccII)
+
+
+# =========================================================
+# V DE CRAMÉR - FMCC II × CÁLCULO I
+# =========================================================
+
+n_total <- sum(matriz_fmccII)
+
+v_fmccII <- sqrt(
+  as.numeric(teste_fmccII$statistic) /
+    (n_total * min(
+      nrow(matriz_fmccII) - 1,
+      ncol(matriz_fmccII) - 1
+    ))
+)
+
+cat(
+  "\nV de Cramér - FMCC II × Cálculo I:",
+  v_fmccII,
+  "\n"
+)
+
+# Agora eu faria o teste de FMCC I
+
+# =========================================================
+# 72. ASSOCIAÇÃO ENTRE FMCC I E CÁLCULO I
+# =========================================================
+
+tabela_fmccI_calculo <- analise_fmcc_calculo %>%
+  filter(
+    resultado_fmcc_FMCC_I %in% c(
+      "Aprovado",
+      "Dispensa",
+      "Sem aprovação"
+    ),
+    desempenho_calculo %in% c(
+      "Sucesso",
+      "Sem sucesso"
+    )
+  ) %>%
+  mutate(
+    resultado_fmccI_binario = case_when(
+      resultado_fmcc_FMCC_I %in% c(
+        "Aprovado",
+        "Dispensa"
+      ) ~ "Sucesso",
+      
+      resultado_fmcc_FMCC_I == "Sem aprovação" ~
+        "Sem sucesso"
+    )
+  ) %>%
+  count(
+    resultado_fmccI_binario,
+    desempenho_calculo
+  ) %>%
+  tidyr::pivot_wider(
+    names_from = desempenho_calculo,
+    values_from = n,
+    values_fill = 0
+  )
+
+print(tabela_fmccI_calculo)
+
+#
+
+matriz_fmccI <- tabela_fmccI_calculo %>%
+  select(
+    Sucesso,
+    `Sem sucesso`
+  ) %>%
+  as.matrix()
+
+rownames(matriz_fmccI) <-
+  tabela_fmccI_calculo$resultado_fmccI_binario
+
+print(matriz_fmccI)
+
+teste_fmccI <- chisq.test(
+  matriz_fmccI
+)
+
+print(teste_fmccI)
