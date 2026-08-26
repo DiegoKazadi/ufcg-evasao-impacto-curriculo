@@ -2466,3 +2466,135 @@ teste_fmccI <- chisq.test(
 )
 
 print(teste_fmccI)
+
+
+n_total <- sum(matriz_fmccI)
+
+v_fmccI <- sqrt(
+  as.numeric(teste_fmccI$statistic) /
+    (
+      n_total *
+        min(
+          nrow(matriz_fmccI) - 1,
+          ncol(matriz_fmccI) - 1
+        )
+    )
+)
+
+cat(
+  "\nV de Cramér - FMCC I × Cálculo I:",
+  v_fmccI,
+  "\n"
+)
+
+resultado_fmcc_aluno %>%
+  filter(
+    disciplina == "FMCC I"
+  ) %>%
+  count(
+    resultado_fmcc
+  )
+
+trajetoria_completa %>%
+  count(
+    resultado_fmcc_FMCC_I,
+    sort = TRUE
+  )
+
+# 
+
+trajetoria_completa <- trajetoria_fmcc %>%
+  inner_join(
+    resultado_calculo_2017,
+    by = "registration"
+  )
+
+trajetoria_completa <- trajetoria_fmcc %>%
+  inner_join(
+    resultado_calculo_2017,
+    by = "registration"
+  )
+
+trajetoria_completa <- trajetoria_fmcc %>%
+  left_join(
+    resultado_calculo_2017,
+    by = "registration"
+  )
+
+cat("\n=========================================================\n")
+cat("TRAJETÓRIA FMCC I + FMCC II\n")
+cat("=========================================================\n")
+
+cat(
+  "\nTotal de alunos:",
+  nrow(trajetoria_completa),
+  "\n"
+)
+
+trajetoria_completa %>%
+  count(
+    resultado_fmcc_FMCC_I
+  ) %>%
+  print()
+
+trajetoria_completa %>%
+  filter(
+    !is.na(resultado_calculo)
+  ) %>%
+  count(
+    resultado_fmcc_FMCC_I,
+    resultado_calculo
+  ) %>%
+  print(n = Inf)
+
+analise_fmccI_calculo <- trajetoria_completa %>%
+  filter(
+    !is.na(resultado_calculo),
+    resultado_fmcc_FMCC_I %in% c(
+      "Aprovado",
+      "Dispensa",
+      "Sem aprovação"
+    ),
+    resultado_calculo %in% c(
+      "Aprovado",
+      "Dispensa",
+      "Sem aprovação"
+    )
+  ) %>%
+  mutate(
+    resultado_fmccI_binario = case_when(
+      resultado_fmcc_FMCC_I %in% c(
+        "Aprovado",
+        "Dispensa"
+      ) ~ "Sucesso",
+      
+      resultado_fmcc_FMCC_I == "Sem aprovação" ~
+        "Sem sucesso"
+    ),
+    
+    desempenho_calculo = case_when(
+      resultado_calculo %in% c(
+        "Aprovado",
+        "Dispensa"
+      ) ~ "Sucesso",
+      
+      resultado_calculo == "Sem aprovação" ~
+        "Sem sucesso"
+    )
+  )
+
+analise_fmccI_calculo %>%
+  count(
+    resultado_fmccI_binario,
+    desempenho_calculo
+  ) %>%
+  group_by(
+    resultado_fmccI_binario
+  ) %>%
+  mutate(
+    percentual = 100 * n / sum(n)
+  ) %>%
+  ungroup() %>%
+  print()
+
+
